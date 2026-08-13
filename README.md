@@ -1,5 +1,13 @@
 # dsh Self Checking profile
 
+[English](README.md) | [中文](README.zh-CN.md)
+
+This project is based on **dsh / DeepSeek Harness**, the open-source AI agent
+harness by DeepSeek ([source](https://github.com/deepseek-ai/deepseek-harness)
+· [`@deepseek-ai/dsh` on npm](https://www.npmjs.com/package/@deepseek-ai/dsh)):
+it ships as a dsh *web profile* that layers a reproducible fork set on top of a
+pristine dsh install — upstream packages stay untouched.
+
 A drop-in dsh web profile that adds the **Self Checking** sandbox mode on top
 of `workspace-write` and `danger-full-access`, as a fully reproducible fork
 layer plus release tooling.

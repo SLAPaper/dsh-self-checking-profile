@@ -28,6 +28,13 @@ All notable changes to this repository are documented here. The baseline
   (`sandbox_permissions: "danger-full-access"` + `justification`) when full
   access is genuinely required; users are advised to prompt the agent to
   escalate when it is stuck re-failing on the same non-file error.
+- README now credits the upstream project at the top: the profile is based on
+  dsh / DeepSeek Harness, citing the source repository
+  (<https://github.com/deepseek-ai/deepseek-harness>) and the npm package
+  (<https://www.npmjs.com/package/@deepseek-ai/dsh>).
+- Added a Chinese translation of the README (`README.zh-CN.md`) with mutual
+  English ↔ 中文 links at the top of both documents; the release zip ships both
+  files.
 
 ## 0.1.0 — 2026-08-14
 
