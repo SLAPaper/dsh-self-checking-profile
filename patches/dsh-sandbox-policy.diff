@@ -1,0 +1,123 @@
+--- a/dsh-sandbox-policy/lib/index.js
++++ b/dsh-sandbox-policy/lib/index.js
+@@ -26,6 +26,7 @@
+ const SANDBOX_MODES = [
+ 	"read-only",
+ 	"workspace-write",
++	"self-checking",
+ 	"danger-full-access"
+ ];
+ /**
+@@ -84,6 +85,7 @@
+ 	switch (policy.mode) {
+ 		case "read-only": return "Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.";
+ 		case "workspace-write": return `Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify(policy.workspaceRoot)}. Some platform temporary areas may also be writable.`;
++		case "self-checking": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access.`;
+ 		case "danger-full-access": return "Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.";
+ 		/* v8 ignore next 4 -- SandboxMode is a typed same-process closed union; this branch is only the static exhaustiveness guard. */
+ 		default: {
+@@ -103,6 +105,7 @@
+ 		mode: z.union([
+ 			"read-only",
+ 			"workspace-write",
++			"self-checking",
+ 			"danger-full-access"
+ 		]).default("read-only"),
+ 		workspaceRoot: z.string()
+@@ -111,10 +114,22 @@
+ 	defaultMode;
+ 	/** The absolute `workspace-write` fallback root for calls without a session cwd. */
+ 	workspaceRoot;
++	/**
++	* Per-session self-checking intercept state: `sessionId` → the set of
++	* command/operation keys already intercepted once under `self-checking`
++	* mode. A recorded key means the next identical call is the sanctioned
++	* re-run and executes with full access. In-memory only: a server restart
++	* resets the gate (a fresh session simply re-intercepts), and entries are
++	* dropped when their session is disposed.
++	*/
++	selfCheckIntercepts = /* @__PURE__ */ new Map();
+ 	constructor(ctx, config) {
+ 		super(ctx, "sandboxPolicy");
+ 		this.defaultMode = config.mode;
+ 		this.workspaceRoot = resolveWorkspaceRoot(config.workspaceRoot ?? process.cwd());
++		ctx.on("session/disposed", (session) => {
++			this.selfCheckIntercepts.delete(session.id);
++		});
+ 		ctx.inject(["systemPrompt"], (scope) => {
+ 			scope.systemPrompt.context({
+ 				name: "sandbox:policy",
+@@ -127,6 +142,36 @@
+ 		});
+ 	}
+ 	/**
++	* Whether a self-checking key was intercepted earlier in its session — the
++	* sanctioned re-run test the bash/pwsh executors and the filesystem fence
++	* apply BEFORE their workspace-write probe: an allowed key skips the probe
++	* and executes with full access.
++	* @param sessionId - the calling session's identity (absent for agentless
++	*   calls, which never intercept).
++	* @param key - the intercepted command string or resolved target path.
++	* @returns whether the identical call already passed the interception.
++	*/
++	selfCheckAllowed(sessionId, key) {
++		return this.selfCheckIntercepts.get(String(sessionId))?.has(key) === true;
++	}
++	/**
++	* Record one self-checking interception so the identical next call is
++	* allowed with full access. Idempotent: re-recording an intercepted key is
++	* a no-op, which keeps background-process settlement and repeated reads
++	* from double-counting.
++	* @param sessionId - the calling session's identity.
++	* @param key - the intercepted command string or resolved target path.
++	*/
++	selfCheckRecord(sessionId, key) {
++		const id = String(sessionId);
++		let keys = this.selfCheckIntercepts.get(id);
++		if (keys === void 0) {
++			keys = /* @__PURE__ */ new Set();
++			this.selfCheckIntercepts.set(id, keys);
++		}
++		keys.add(key);
++	}
++	/**
+ 	* Resolve the complete policy for one capability call. An approved explicit
+ 	* mode outranks the session's last `sandbox/mode` event, which outranks the
+ 	* deployment default. A session cwd is its workspace-write boundary; the
+--- a/dsh-sandbox-policy/lib/types/index.d.ts
++++ b/dsh-sandbox-policy/lib/types/index.d.ts
+@@ -62,8 +62,34 @@
+     readonly defaultMode: SandboxMode;
+     /** The absolute `workspace-write` fallback root for calls without a session cwd. */
+     readonly workspaceRoot: string;
++    /**
++     * Per-session self-checking intercept state: `sessionId` → the set of
++     * command/operation keys already intercepted once under `self-checking`
++     * mode. A recorded key means the next identical call is the sanctioned
++     * re-run and executes with full access. In-memory only: a server restart
++     * resets the gate, and entries are dropped when their session is disposed.
++     */
++    readonly selfCheckIntercepts: Map<string, Set<string>>;
+     constructor(ctx: Context, config: Config);
+     /**
++     * Whether a self-checking key was intercepted earlier in its session — the
++     * sanctioned re-run test the bash/pwsh executors and the filesystem fence
++     * apply BEFORE their workspace-write probe: an allowed key skips the probe
++     * and executes with full access.
++     * @param sessionId - the calling session's identity (absent for agentless
++     *   calls, which never intercept).
++     * @param key - the intercepted command string or resolved target path.
++     * @returns whether the identical call already passed the interception.
++     */
++    selfCheckAllowed(sessionId: unknown, key: string): boolean;
++    /**
++     * Record one self-checking interception so the identical next call is
++     * allowed with full access. Idempotent.
++     * @param sessionId - the calling session's identity.
++     * @param key - the intercepted command string or resolved target path.
++     */
++    selfCheckRecord(sessionId: unknown, key: string): void;
++    /**
+      * Resolve the complete policy for one capability call. An approved explicit
+      * mode outranks the session's last `sandbox/mode` event, which outranks the
+      * deployment default. A session cwd is its workspace-write boundary; the

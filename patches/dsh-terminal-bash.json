@@ -1,0 +1,16 @@
+{
+  "package": "dsh-terminal-bash",
+  "builtAgainst": "0.1.0-rc.6",
+  "files": {
+    "lib/index.js": [
+      {
+        "old": "\treturn sandbox.confine(argv, {",
+        "new": "\t// A persistent terminal cannot ride the self-checking intercept-and-re-run\n\t// flow (each command inside runs in the same confined process), so its\n\t// confinement is the mode's safe default: the workspace-write boundary.\n\tconst mode = policy.mode === \"self-checking\" ? \"workspace-write\" : policy.mode;\n\treturn sandbox.confine(argv, {"
+      },
+      {
+        "old": "\t\tmode: policy.mode",
+        "new": "\t\tmode"
+      }
+    ]
+  }
+}

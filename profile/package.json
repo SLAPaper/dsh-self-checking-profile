@@ -1,0 +1,25 @@
+{
+  "name": "dsh-profile-self-checking",
+  "private": true,
+  "dependencies": {
+    "@deepseek-ai/dsh-bash-sandbox": "file:./forks/dsh-bash-sandbox",
+    "@deepseek-ai/dsh-fs-sandbox": "file:./forks/dsh-fs-sandbox",
+    "@deepseek-ai/dsh-permission-presets": "file:./forks/dsh-permission-presets",
+    "@deepseek-ai/dsh-pwsh-sandbox": "file:./forks/dsh-pwsh-sandbox",
+    "@deepseek-ai/dsh-sandbox": "file:./forks/dsh-sandbox",
+    "@deepseek-ai/dsh-sandbox-local": "file:./forks/dsh-sandbox-local",
+    "@deepseek-ai/dsh-sandbox-policy": "file:./forks/dsh-sandbox-policy",
+    "@deepseek-ai/dsh-terminal-bash": "file:./forks/dsh-terminal-bash",
+    "@deepseek-ai/dsh-tool-bash": "file:./forks/dsh-tool-bash",
+    "@deepseek-ai/dsh-tool-pwsh": "file:./forks/dsh-tool-pwsh",
+    "@deepseek-ai/dsh-client-ui-conversation": "file:./forks/dsh-client-ui-conversation"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app"
+      ]
+    }
+  }
+}

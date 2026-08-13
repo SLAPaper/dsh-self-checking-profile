@@ -1,0 +1,188 @@
+# dsh Self Checking profile
+
+A drop-in dsh web profile that adds the **Self Checking** sandbox mode on top
+of `workspace-write` and `danger-full-access`, as a fully reproducible fork
+layer plus release tooling.
+
+- **Fork layer** — 11 forked `@deepseek-ai` packages under `profile/forks/`
+  that shadow the identical upstream packages for the profile only; upstream
+  installs stay pristine.
+- **Patch set** — `patches/*.json` (machine-applied anchored replacements) and
+  `patches/*.diff` (human review) that rebuild the fork layer from a pristine
+  dsh 0.1.0-rc.6 install, byte-for-byte.
+- **Release tooling** — install scripts, an acceptance verifier, a rebuild
+  tool for upstream upgrades, and a release packager.
+
+## What Self Checking does
+
+Self Checking is "full access with a workspace boundary check":
+
+- Every command/operation runs under `workspace-write` confinement **by default**.
+- A command/operation denied for touching a path **outside the workspace** is
+  **intercepted once**: the model sees
+
+  ```
+  [sandbox: self-check intercepted — this command attempted to access a path
+  outside the workspace; re-run the exact same command and it will be allowed
+  with full access]
+  ```
+
+  and nothing was executed.
+- Re-running the **exact same command/operation** executes it with **full
+  access** (no approval prompt), for the rest of the session.
+
+It is selectable like any other permission preset — Settings → Permission
+(default for new sessions) or the composer permission picker / `/permission
+self-checking` (current session).
+
+## Repository layout
+
+```
+├── profile/                  the installable profile template
+│   ├── forks/@deepseek-ai/   the 11 forked packages (source of truth)
+│   ├── cordis.patch.yml      Self Checking permission preset (+ layout notes)
+│   ├── cordis.yml            profile root (empty entry list)
+│   ├── package.json          bundles + fork `file:` dependencies
+│   └── pnpm-workspace.yaml   nodeLinker: hoisted
+├── patches/                  rebuild manifests (.json) + review diffs (.diff)
+├── tools/
+│   ├── gen-patches.mjs       regenerate the patch set from pristine + forks
+│   ├── rebuild-fork.mjs      rebuild the fork layer from pristine + patches
+│   └── build-release.mjs     package the release zip
+├── tests/
+│   ├── verify-self-checking.mjs   dev regression (vocabulary/gate/fence/executor)
+│   ├── verify-acl-probe.mjs       live windows-acl runner probe
+│   └── profile-acl-test.mjs       full ACL chain against an installed profile
+├── install.ps1 / install.sh  install the profile into $DSH_HOME
+├── verify.mjs                acceptance verifier (copied into each install)
+├── CHANGELOG.md
+└── LICENSE                   MIT (upstream packages keep their own LICENSE)
+```
+
+## Requirements
+
+- dsh **0.1.0-rc.6** (the fork baseline; run `npx @deepseek-ai/dsh` once so the
+  shared module fallback `~/.dsh/profiles/node_modules` exists)
+- Windows, macOS, or Linux — the code is platform-neutral; the interception
+  uses each platform's workspace-write backend (ACL restricted token on
+  Windows, bwrap/Landlock on Linux, Seatbelt on macOS)
+
+## Install
+
+From a checkout of this repository:
+
+```powershell
+# Windows
+powershell -ExecutionPolicy Bypass -File install.ps1          # installs as profile "self-checking"
+```
+
+```bash
+# macOS / Linux
+./install.sh
+```
+
+The script copies `profile/` to `~/.dsh/profiles/<name>/` and **assembles the
+fork layer** from `profile/forks/` into `node_modules/@deepseek-ai/`
+(node_modules is a build artifact and is not tracked by git). Then start:
+
+```bash
+npx @deepseek-ai/dsh --profile self-checking
+```
+
+### pnpm-managed install (optional)
+
+The profile also ships its forks as `file:` dependencies in `package.json`,
+so the fork layer can be (re)installed by the package manager instead of by
+the copy step — installs no longer prune it, and upgrading the fork set is one
+dependency bump:
+
+```bash
+# pnpm must be on PATH; the profile's pnpm-workspace.yaml uses
+# nodeLinker: hoisted so the forks land as top-level real directories
+dsh plugin --profile self-checking install
+```
+
+Verified layout (pnpm 10, hoisted linker, real profile location): the forks
+resolve from `node_modules/@deepseek-ai/...` first, fork-internal imports stay
+on the forks, and every undeclared dependency (`cordis`, `dsh-tools`, ...)
+resolves from the shared fallback through the ordinary parent walk. A second
+`pnpm install` keeps the forks (declared dependencies). Peer-dependency and
+koffi build-script warnings are expected and harmless (the native koffi
+binding comes from the `@koromix/koffi-<platform>` optional package).
+
+To publish the forks as registry packages instead of local directories,
+replace each `file:` spec with an npm alias — `"@deepseek-ai/dsh-sandbox":
+"npm:<your-scope>/dsh-sandbox-selfchecking@<version>"` — the mechanism is
+identical; you would need to publish the eleven fork packages first.
+
+## Verify
+
+`verify.mjs` (copied into every install) checks, along the real boot path:
+fork resolution from the profile directory (including the client-side
+`dsh-client-ui-conversation`, which the web plugin table resolves through the
+same profile walk), the forked `SANDBOX_MODES`, the extended windows-acl
+denial dialect, preset config validation, and the live filesystem fence
+(inside passes → outside intercepted → re-run allowed).
+
+```bash
+node ~/.dsh/profiles/self-checking/verify.mjs --profile ~/.dsh/profiles/self-checking
+```
+
+## Development
+
+```bash
+# dev regression against the repo's own fork sources
+node tests/verify-self-checking.mjs
+# optional overrides: DSH_SC_FORKS=<fork dir> DSH_SC_UPSTREAM=<pristine @deepseek-ai dir>
+
+# live ACL probe against the real windows-acl runner
+node tests/verify-acl-probe.mjs
+```
+
+### Rebuilding the fork layer after an upstream upgrade
+
+```bash
+# after upgrading dsh to a new version (or to verify the baseline):
+node tools/rebuild-fork.mjs --upstream <pristine @deepseek-ai dir> --out <dir> --check profile/forks
+```
+
+If the new upstream drifted from the `builtAgainst` baseline, `rebuild-fork.mjs`
+fails loudly with the offending anchor; regenerate the patch manifests against
+the new baseline with:
+
+```bash
+node tools/gen-patches.mjs <upstream> <fork> <patches-out>
+```
+
+### Building a release
+
+```bash
+node tools/build-release.mjs [version]
+# → dsh-profile-self-checking-<version>.zip (profile/ minus node_modules,
+#   patches, tools, tests, docs, install scripts)
+```
+
+## Notes / known limitations
+
+- The interception gate is per-session in-memory state: a server restart
+  resets it (a fresh session simply re-intercepts).
+- Reads outside the workspace are not intercepted (matching workspace-write
+  semantics); only denied file effects are.
+- Agentless (non-model) calls under self-checking probe but have no re-run
+  escape hatch — they stay denied (fail closed).
+- Persistent terminals confine as workspace-write (no re-run flow inside a
+  terminal).
+- Do **not** run `dsh plugin --profile <name> install` in a profile whose
+  forks were assembled by copy unless you keep `forks/` in sync (the package
+  manager rebuilds node_modules from the declared `file:` deps).
+
+## Uninstall
+
+Remove the profile directory (`~/.dsh/profiles/self-checking`). Nothing
+else is touched — upstream packages stay pristine.
+
+## License
+
+MIT. Each forked package retains its upstream `LICENSE` (Copyright (c) 2026
+DeepSeek); the profile composition, patch set, tools, tests, and
+documentation are MIT, Copyright (c) 2026 the profile author.

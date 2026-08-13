@@ -1,0 +1,42 @@
+{
+  "package": "dsh-sandbox-policy",
+  "builtAgainst": "0.1.0-rc.6",
+  "files": {
+    "lib/index.js": [
+      {
+        "old": "\t\"workspace-write\",\n\t\"danger-full-access\"",
+        "new": "\t\"workspace-write\",\n\t\"self-checking\",\n\t\"danger-full-access\""
+      },
+      {
+        "old": "\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";",
+        "new": "\t\tcase \"self-checking\": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access.`;\n\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";"
+      },
+      {
+        "old": "\t\t\t\"danger-full-access\"",
+        "new": "\t\t\t\"self-checking\",\n\t\t\t\"danger-full-access\""
+      },
+      {
+        "old": "\tconstructor(ctx, config) {",
+        "new": "\t/**\n\t* Per-session self-checking intercept state: `sessionId` → the set of\n\t* command/operation keys already intercepted once under `self-checking`\n\t* mode. A recorded key means the next identical call is the sanctioned\n\t* re-run and executes with full access. In-memory only: a server restart\n\t* resets the gate (a fresh session simply re-intercepts), and entries are\n\t* dropped when their session is disposed.\n\t*/\n\tselfCheckIntercepts = /* @__PURE__ */ new Map();\n\tconstructor(ctx, config) {"
+      },
+      {
+        "old": "\t\tctx.inject([\"systemPrompt\"], (scope) => {",
+        "new": "\t\tctx.on(\"session/disposed\", (session) => {\n\t\t\tthis.selfCheckIntercepts.delete(session.id);\n\t\t});\n\t\tctx.inject([\"systemPrompt\"], (scope) => {"
+      },
+      {
+        "old": "\t* Resolve the complete policy for one capability call. An approved explicit",
+        "new": "\t* Whether a self-checking key was intercepted earlier in its session — the\n\t* sanctioned re-run test the bash/pwsh executors and the filesystem fence\n\t* apply BEFORE their workspace-write probe: an allowed key skips the probe\n\t* and executes with full access.\n\t* @param sessionId - the calling session's identity (absent for agentless\n\t*   calls, which never intercept).\n\t* @param key - the intercepted command string or resolved target path.\n\t* @returns whether the identical call already passed the interception.\n\t*/\n\tselfCheckAllowed(sessionId, key) {\n\t\treturn this.selfCheckIntercepts.get(String(sessionId))?.has(key) === true;\n\t}\n\t/**\n\t* Record one self-checking interception so the identical next call is\n\t* allowed with full access. Idempotent: re-recording an intercepted key is\n\t* a no-op, which keeps background-process settlement and repeated reads\n\t* from double-counting.\n\t* @param sessionId - the calling session's identity.\n\t* @param key - the intercepted command string or resolved target path.\n\t*/\n\tselfCheckRecord(sessionId, key) {\n\t\tconst id = String(sessionId);\n\t\tlet keys = this.selfCheckIntercepts.get(id);\n\t\tif (keys === void 0) {\n\t\t\tkeys = /* @__PURE__ */ new Set();\n\t\t\tthis.selfCheckIntercepts.set(id, keys);\n\t\t}\n\t\tkeys.add(key);\n\t}\n\t/**\n\t* Resolve the complete policy for one capability call. An approved explicit"
+      }
+    ],
+    "lib/types/index.d.ts": [
+      {
+        "old": "    constructor(ctx: Context, config: Config);",
+        "new": "    /**\n     * Per-session self-checking intercept state: `sessionId` → the set of\n     * command/operation keys already intercepted once under `self-checking`\n     * mode. A recorded key means the next identical call is the sanctioned\n     * re-run and executes with full access. In-memory only: a server restart\n     * resets the gate, and entries are dropped when their session is disposed.\n     */\n    readonly selfCheckIntercepts: Map<string, Set<string>>;\n    constructor(ctx: Context, config: Config);"
+      },
+      {
+        "old": "     * Resolve the complete policy for one capability call. An approved explicit",
+        "new": "     * Whether a self-checking key was intercepted earlier in its session — the\n     * sanctioned re-run test the bash/pwsh executors and the filesystem fence\n     * apply BEFORE their workspace-write probe: an allowed key skips the probe\n     * and executes with full access.\n     * @param sessionId - the calling session's identity (absent for agentless\n     *   calls, which never intercept).\n     * @param key - the intercepted command string or resolved target path.\n     * @returns whether the identical call already passed the interception.\n     */\n    selfCheckAllowed(sessionId: unknown, key: string): boolean;\n    /**\n     * Record one self-checking interception so the identical next call is\n     * allowed with full access. Idempotent.\n     * @param sessionId - the calling session's identity.\n     * @param key - the intercepted command string or resolved target path.\n     */\n    selfCheckRecord(sessionId: unknown, key: string): void;\n    /**\n     * Resolve the complete policy for one capability call. An approved explicit"
+      }
+    ]
+  }
+}

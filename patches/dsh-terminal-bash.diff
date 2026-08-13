@@ -1,0 +1,17 @@
+--- a/dsh-terminal-bash/lib/index.js
++++ b/dsh-terminal-bash/lib/index.js
+@@ -731,9 +731,13 @@
+ 	if (policy.mode === "danger-full-access") return argv;
+ 	const sandbox = ctx.get("sandbox");
+ 	if (sandbox === void 0) throw new Error(`terminal-bash: sandbox mode "${policy.mode}" requires a ctx.sandbox provider in the execution world`);
++	// A persistent terminal cannot ride the self-checking intercept-and-re-run
++	// flow (each command inside runs in the same confined process), so its
++	// confinement is the mode's safe default: the workspace-write boundary.
++	const mode = policy.mode === "self-checking" ? "workspace-write" : policy.mode;
+ 	return sandbox.confine(argv, {
+ 		...policy,
+-		mode: policy.mode
++		mode
+ 	}).argv;
+ }
+ async function initializeSession(session, signal) {

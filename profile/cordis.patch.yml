@@ -1,0 +1,44 @@
+# Your patch layer for this dsh profile, applied after every bundle layer:
+# a top-level YAML array of loader patch entries (id-targeted config
+# overrides, disables, and insert lists; `!!js` expressions allowed).
+
+# Self Checking permission preset — full access (approval: never) with a
+# workspace boundary check: commands run under workspace-write first; a probe
+# denied for accessing a path outside the workspace is intercepted once with a
+# `[sandbox: self-check intercepted ...]` notice, and re-running the exact same
+# command/operation executes it with full access automatically.
+#
+# The mode is implemented by this profile's fork layer, shipped in two
+# equivalent forms:
+#   forks/@deepseek-ai/dsh-{sandbox,sandbox-policy,pwsh-sandbox,bash-sandbox,
+#   fs-sandbox,sandbox-local,tool-pwsh,tool-bash,terminal-bash,permission-presets}
+#   - the source of truth, declared as `file:` dependencies in package.json;
+#   node_modules/@deepseek-ai/... - the installed copies (preinstalled in this
+#   archive; `dsh plugin --profile <name> install` re-creates them via pnpm).
+# dsh-permission-presets in both locations is an unmodified copy whose only
+# purpose is to make its `dsh-sandbox-policy` import resolve through this
+# directory to the forked SANDBOX_MODES.
+#
+# Maintenance: the fork layer is reproducible from the pristine install via
+# release/tools/rebuild-fork.mjs + release/patches/*.json (see README.md).
+# The fork directories move with the profile — no re-linking after moving or
+# renaming the profile directory. Do not run `dsh plugin --profile <name>
+# install` in this profile unless you re-copy the fork layer afterwards.
+- id: permission
+  name: '@deepseek-ai/dsh-permission-presets'
+  config:
+    presets:
+      read-only:
+        sandbox: read-only
+        approval: ask
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      self-checking:
+        sandbox: self-checking
+        approval: never
+        name: Self Checking
+        description: "Full access with a workspace boundary check: commands run under workspace-write first; an intercepted outside-workspace access is allowed by re-running the same command, which executes with full access."
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never

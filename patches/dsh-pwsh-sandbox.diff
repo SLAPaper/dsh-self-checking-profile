@@ -1,0 +1,204 @@
+--- a/dsh-pwsh-sandbox/lib/index.js
++++ b/dsh-pwsh-sandbox/lib/index.js
+@@ -91,6 +91,20 @@
+ 	const lowered = stderr.toLowerCase();
+ 	return signatures.some((signature) => lowered.includes(signature.toLowerCase()));
+ }
++/**
++* Match stderr against the backend's denial signatures WITHOUT the exit-code
++* gate — the self-checking probe rule. PowerShell surfaces non-terminating
++* file errors (a denied `Set-Content`/`New-Item`) on stderr with a ZERO exit,
++* so the probe that must catch exactly those denials cannot require a nonzero
++* status; the standing modes keep the strict gate.
++* @param stderr - collected stderr text.
++* @param signatures - substrings identifying the selected backend's dialect.
++* @returns whether the stderr matches a denial signature.
++*/
++function matchesDenialStderr(stderr, signatures) {
++	const lowered = stderr.toLowerCase();
++	return signatures.some((signature) => lowered.includes(signature.toLowerCase()));
++}
+ //#endregion
+ //#region lib/types/index.js
+ /**
+@@ -158,6 +172,66 @@
+ 				denied: false
+ 			}
+ 		};
++		if (mode === "self-checking") return this.runSelfChecking(spec, policy);
++		return this.runConfined(spec, {
++			...policy,
++			mode
++		});
++	}
++	/**
++	* The `self-checking` execution path: an already-intercepted command (the
++	* sanctioned re-run) executes unconfined with full access; any other
++	* command first probes under `workspace-write`. A probe denied for touching
++	* paths outside the workspace is the one-time INTERCEPTION: the key is
++	* recorded on the calling session and the result carries `intercepted` so
++	* the tool layer renders the re-run notice instead of a plain denial. An
++	* agentless call has no session to record on: its probe stays a plain
++	* denial with no escape hatch.
++	* @param spec - the resolved execution spec.
++	* @param policy - the self-checking policy stamped onto the call.
++	* @returns the settled result with `sandbox.mode: "self-checking"`.
++	*/
++	async runSelfChecking(spec, policy) {
++		const sessionId = policy.sessionId;
++		const key = spec.command;
++		if (sessionId === void 0 || !this.ctx.sandboxPolicy.selfCheckAllowed(sessionId, key)) {
++			const probe = await this.runProbe(spec, {
++				...policy,
++				mode: "workspace-write"
++			});
++			const intercepted = probe.denied && sessionId !== void 0;
++			if (intercepted) this.ctx.sandboxPolicy.selfCheckRecord(sessionId, key);
++			return {
++				...probe.result,
++				sandbox: {
++					mode: "self-checking",
++					denied: probe.denied,
++					...probe.result.sandbox.enforcement !== void 0 ? { enforcement: probe.result.sandbox.enforcement } : {},
++					...intercepted ? { intercepted: true } : {}
++				}
++			};
++		}
++		return {
++			...await super.run(spec),
++			sandbox: {
++				mode: "self-checking",
++				denied: false
++			}
++		};
++	}
++	/**
++	* Run one workspace-write probe and settle it with the probe's relaxed
++	* denial rule ({@link matchesDenialStderr}): a pwsh denial that PowerShell
++	* reports as a non-terminating error exits 0 with the denial on stderr, so
++	* the exit gate the standing modes apply would miss exactly the
++	* interception this mode exists to catch. Runner failures keep their
++	* fail-closed throw.
++	* @param spec - the resolved execution spec.
++	* @param policy - the confined probe policy (mode `workspace-write`).
++	* @returns the settled result plus the probe's denial verdict.
++	*/
++	async runProbe(spec, policy) {
++		const { mode } = policy;
+ 		const confined = this.confine(spec, {
+ 			...policy,
+ 			mode
+@@ -172,7 +246,37 @@
+ 		}
+ 		const runnerFailure = classifyRunnerFailure(result.exitCode, result.stderr.text, confined.runnerFailureRules);
+ 		if (runnerFailure !== void 0) throw new SandboxUnavailableError(mode, runnerFailure.detail);
++		const denied = matchesDenialStderr(result.stderr.text, confined.denialSignatures);
+ 		return {
++			result: {
++				...result,
++				sandbox: {
++					mode,
++					denied,
++					enforcement: confined.enforcement
++				}
++			},
++			denied
++		};
++	}
++	/** The shared confined-run machinery (the standing confined modes and the self-checking probe). */
++	async runConfined(spec, policy) {
++		const { mode } = policy;
++		const confined = this.confine(spec, {
++			...policy,
++			mode
++		});
++		let result;
++		try {
++			result = await this.runArgv(spec, confined.argv);
++		} catch (error) {
++			if (spec.signal?.aborted === true) spec.signal.throwIfAborted();
++			if (isRunnerSpawnFailure(error, confined.argv[0], spec.workdir)) throw new SandboxUnavailableError(mode, String(error));
++			throw error;
++		}
++		const runnerFailure = classifyRunnerFailure(result.exitCode, result.stderr.text, confined.runnerFailureRules);
++		if (runnerFailure !== void 0) throw new SandboxUnavailableError(mode, runnerFailure.detail);
++		return {
+ 			...result,
+ 			sandbox: {
+ 				mode,
+@@ -185,6 +289,7 @@
+ 		const policy = spec.sandboxPolicy;
+ 		const { mode } = policy;
+ 		if (mode === "danger-full-access") return super.start(spec);
++		if (mode === "self-checking") return this.startSelfChecking(spec, policy);
+ 		const confined = this.confine(spec, {
+ 			...policy,
+ 			mode
+@@ -208,8 +313,45 @@
+ 		return proc;
+ 	}
+ 	/**
++	* The `self-checking` background path: an already-intercepted command
++	* starts unconfined; any other command probes under `workspace-write`, with
++	* the calling session and command key carried on its process facts so a
++	* denied settlement records the interception and stamps `intercepted` for
++	* the job-output renderer (see {@link onProcessDone}).
++	*/
++	startSelfChecking(spec, policy) {
++		const sessionId = policy.sessionId;
++		const key = spec.command;
++		if (sessionId === void 0 || this.ctx.sandboxPolicy.selfCheckAllowed(sessionId, key)) return super.start(spec);
++		const confined = this.confine(spec, {
++			...policy,
++			mode: "workspace-write"
++		});
++		let proc;
++		try {
++			proc = this.startArgv(spec, confined.argv);
++		} catch (error) {
++			if (isRunnerSpawnFailure(error, confined.argv[0], spec.workdir)) throw new SandboxUnavailableError("workspace-write", String(error));
++			throw error;
++		}
++		const { enforcement, denialSignatures, runnerFailureRules } = confined;
++		this.processFacts.set(proc, {
++			mode: "self-checking",
++			sessionId,
++			selfCheckKey: key,
++			enforcement,
++			denialSignatures,
++			runnerFailureRules,
++			runnerProgram: confined.argv[0],
++			workdir: spec.workdir
++		});
++		return proc;
++	}
++	/**
+ 	* Stamp per-process sandbox facts before `done` settles. Full-access
+-	* processes have no facts; signal deaths are not denials.
++	* processes have no facts; signal deaths are not denials. A denied
++	* self-checking probe records the interception on its session (idempotent)
++	* and stamps `intercepted` so the tool renders the re-run notice.
+ 	*/
+ 	onProcessDone(proc, stderr, spawnFailed, spawnError) {
+ 		const facts = this.processFacts.get(proc);
+@@ -216,11 +358,18 @@
+ 		if (facts !== void 0) {
+ 			this.processFacts.delete(proc);
+ 			const runnerFailed = spawnFailed ? isRunnerSpawnFailure(spawnError, facts.runnerProgram, facts.workdir) : classifyRunnerFailure(proc.exitCode, stderr, facts.runnerFailureRules) !== void 0;
++			const denied = !runnerFailed && (facts.selfCheckKey !== void 0 ? matchesDenialStderr(stderr, facts.denialSignatures) : matchesSignature(proc.exitCode, stderr, facts.denialSignatures));
++			let intercepted = false;
++			if (denied && facts.selfCheckKey !== void 0 && facts.sessionId !== void 0) {
++				this.ctx.sandboxPolicy.selfCheckRecord(facts.sessionId, facts.selfCheckKey);
++				intercepted = true;
++			}
+ 			proc.sandbox = {
+ 				mode: facts.mode,
+-				denied: !runnerFailed && matchesSignature(proc.exitCode, stderr, facts.denialSignatures),
++				denied,
+ 				enforcement: facts.enforcement,
+-				...runnerFailed ? { runnerFailed } : {}
++				...runnerFailed ? { runnerFailed } : {},
++				...intercepted ? { intercepted: true } : {}
+ 			};
+ 		}
+ 		super.onProcessDone(proc, stderr, spawnFailed, spawnError);

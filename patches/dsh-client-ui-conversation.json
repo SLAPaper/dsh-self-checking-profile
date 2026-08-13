@@ -1,0 +1,12 @@
+{
+  "package": "dsh-client-ui-conversation",
+  "builtAgainst": "0.1.0-rc.6",
+  "files": {
+    "lib/client.js": [
+      {
+        "old": "\t\t\t[FULL_ACCESS]: (0, react_jsx_runtime.jsxs)(\"svg\", {",
+        "new": "\t\t\t\"self-checking\": (0, react_jsx_runtime.jsxs)(\"svg\", {\n\t\t\t\twidth: \"16\",\n\t\t\t\theight: \"16\",\n\t\t\t\tviewBox: \"0 0 16 16\",\n\t\t\t\tfill: \"none\",\n\t\t\t\t\"aria-hidden\": true,\n\t\t\t\tchildren: [\n\t\t\t\t\t(0, react_jsx_runtime.jsx)(\"path\", {\n\t\t\t\t\t\td: shieldOutline,\n\t\t\t\t\t\tstroke: \"currentColor\",\n\t\t\t\t\t\tstrokeWidth: \"1.31831\",\n\t\t\t\t\t\tstrokeLinejoin: \"round\"\n\t\t\t\t\t}),\n\t\t\t\t\t(0, react_jsx_runtime.jsx)(\"path\", {\n\t\t\t\t\t\td: \"M4.6 8.2L7 10.6L11.4 5.8\",\n\t\t\t\t\t\tstroke: \"currentColor\",\n\t\t\t\t\t\tstrokeWidth: \"1.31831\",\n\t\t\t\t\t\tstrokeLinecap: \"round\",\n\t\t\t\t\t\tstrokeLinejoin: \"round\"\n\t\t\t\t\t})\n\t\t\t\t]\n\t\t\t}),\n\t\t\t[FULL_ACCESS]: (0, react_jsx_runtime.jsxs)(\"svg\", {"
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "package": "dsh-sandbox",
+  "builtAgainst": "0.1.0-rc.6",
+  "files": {
+    "lib/index.js": [
+      {
+        "old": "\t\"read-only\": [\"workspace-write\", \"danger-full-access\"],\n\t\"workspace-write\": [\"danger-full-access\"]",
+        "new": "\t\"read-only\": [\"workspace-write\", \"self-checking\", \"danger-full-access\"],\n\t\"workspace-write\": [\"self-checking\", \"danger-full-access\"],\n\t\"self-checking\": [\"danger-full-access\"]"
+      },
+      {
+        "old": "const ESCALATION_TARGETS = [\"workspace-write\", \"danger-full-access\"];",
+        "new": "const ESCALATION_TARGETS = [\"workspace-write\", \"self-checking\", \"danger-full-access\"];"
+      },
+      {
+        "old": "* Resolve a sandbox-escalation request BEFORE anything executes: check strict",
+        "new": "* The model-facing self-checking interception notice — the marker a\n* `self-checking` run reports instead of a plain denial when its\n* workspace-write probe was denied for touching paths outside the workspace.\n* It teaches the one continuation this mode allows: re-running the EXACT same\n* {@link subject} executes it with full access, automatically.\n* @param subject - the family's noun for the intercepted action (`command` for\n*   bash/pwsh, `operation` for a filesystem mutation).\n* @returns the notice line, exactly as the model sees it.\n*/\nfunction selfCheckNoticeMarker(subject) {\n\treturn `[sandbox: self-check intercepted — this ${subject} attempted to access a path outside the workspace; re-run the exact same ${subject} and it will be allowed with full access]`;\n}\n/**\n* Resolve a sandbox-escalation request BEFORE anything executes: check strict"
+      },
+      {
+        "old": "export { ESCALATION_TARGETS, SANDBOX_UNAVAILABLE, SandboxProvider, SandboxProvider as default, SandboxUnavailableError, WIDER_MODES, approveEscalation, canonicalPath, escalationHintMarker, sandboxDenialMarker, validateEscalationArgs, writableRoots };",
+        "new": "export { ESCALATION_TARGETS, SANDBOX_UNAVAILABLE, SandboxProvider, SandboxProvider as default, SandboxUnavailableError, WIDER_MODES, approveEscalation, canonicalPath, escalationHintMarker, sandboxDenialMarker, selfCheckNoticeMarker, validateEscalationArgs, writableRoots };"
+      }
+    ],
+    "lib/types/escalation.d.ts": [
+      {
+        "old": " * The closed outcome vocabulary of one escalation ask — structurally identical",
+        "new": " * The model-facing self-checking interception notice — the marker a\n * `self-checking` run reports instead of a plain denial when its\n * workspace-write probe was denied for touching paths outside the workspace.\n * It teaches the one continuation this mode allows: re-running the EXACT same\n * subject executes it with full access, automatically.\n * @param subject - the family's noun for the intercepted action (`command` for\n *   bash/pwsh, `operation` for a filesystem mutation).\n * @returns the notice line, exactly as the model sees it.\n */\nexport declare function selfCheckNoticeMarker(subject: string): string;\n/**\n * The closed outcome vocabulary of one escalation ask — structurally identical"
+      }
+    ],
+    "lib/types/index.d.ts": [
+      {
+        "old": "export { ESCALATION_TARGETS, WIDER_MODES, approveEscalation, escalationHintMarker, sandboxDenialMarker, validateEscalationArgs, } from './escalation.ts';",
+        "new": "export { ESCALATION_TARGETS, WIDER_MODES, approveEscalation, escalationHintMarker, sandboxDenialMarker, selfCheckNoticeMarker, validateEscalationArgs, } from './escalation.ts';"
+      },
+      {
+        "old": " * backend-defined temp area; `danger-full-access` bypasses confinement. Network\n * and process visibility are outside this vocabulary.",
+        "new": " * backend-defined temp area; `self-checking` executes like `workspace-write`\n * first and, when that probe is denied for touching paths outside the\n * workspace, intercepts once — re-running the exact same command/operation\n * executes it with full access; `danger-full-access` bypasses confinement.\n * Network and process visibility are outside this vocabulary."
+      },
+      {
+        "old": "export type SandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';\n/** A confining (non-`danger-full-access`) mode — the modes a {@link SandboxPolicy} can carry. */\nexport type ConfinedSandboxMode = Exclude<SandboxMode, 'danger-full-access'>;",
+        "new": "export type SandboxMode = 'read-only' | 'workspace-write' | 'self-checking' | 'danger-full-access';"
+      },
+      {
+        "old": " * The complete file-effect policy resolved for one capability call. The root",
+        "new": " * The modes a {@link SandboxPolicy} can carry: the enforcement seam's confine\n * vocabulary. `self-checking` never reaches the provider — its consumers\n * (the bash/pwsh executors and the filesystem fence) translate it into a\n * `workspace-write` probe or, for an already-allowed re-run, full access.\n */\nexport type ConfinedSandboxMode = Exclude<SandboxMode, 'danger-full-access' | 'self-checking'>;\n/**\n * The complete file-effect policy resolved for one capability call. The root"
+      }
+    ]
+  }
+}

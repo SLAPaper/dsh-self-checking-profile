@@ -1,0 +1,12 @@
+--- a/dsh-sandbox-local/lib/index.js
++++ b/dsh-sandbox-local/lib/index.js
+@@ -212,7 +212,8 @@
+ 	"windows-acl": [
+ 		"access is denied",
+ 		"access to the path",
+-		"permission denied"
++		"permission denied",
++		"operation not permitted"
+ 	],
+ 	runnerCommand: ["read-only file system", "permission denied"]
+ };

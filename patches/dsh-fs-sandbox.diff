@@ -1,0 +1,67 @@
+--- a/dsh-fs-sandbox/lib/index.js
++++ b/dsh-fs-sandbox/lib/index.js
+@@ -149,10 +149,11 @@
+ 	* check-here-write-there TOCTOU). `read-only` denies; `workspace-write`
+ 	* re-canonicalizes NOW (`resolve` realpaths the deepest existing ancestor,
+ 	* reflecting a concurrently swapped symlink), requires containment under a
+-	* writable root, and returns THAT fresh target; `danger-full-access` returns
+-	* the caller's target unfenced. Throws the structured `FS_SANDBOX_DENIED` on
+-	* refusal — the tool layer maps it to the model-facing `[sandbox: …]` marker
+-	* and the escalation hint.
++	* writable root, and returns THAT fresh target; `self-checking` probes with
++	* the workspace-write boundary and intercepts once (see {@link selfCheckTarget});
++	* `danger-full-access` returns the caller's target unfenced. Throws the
++	* structured `FS_SANDBOX_DENIED` on refusal — the tool layer maps it to the
++	* model-facing `[sandbox: …]` marker and the escalation hint.
+ 	*/
+ 	async checkedTarget(target, sandboxPolicy) {
+ 		const policy = sandboxPolicy ?? this.ctx.sandboxPolicy.resolve();
+@@ -159,6 +160,7 @@
+ 		const { mode } = policy;
+ 		if (mode === "danger-full-access") return target;
+ 		if (mode === "read-only") throw new FsError(`cannot write "${target.displayPath}": file access denied under read-only mode`, "FS_SANDBOX_DENIED");
++		if (mode === "self-checking") return this.selfCheckTarget(target, policy);
+ 		const fresh = await this.resolve(target.displayPath);
+ 		let contained = false;
+ 		for (const root of writableRoots(policy)) if (await isPathUnder(fresh.targetKey, root)) {
+@@ -168,6 +170,40 @@
+ 		if (!contained) throw new FsError(`cannot write "${target.displayPath}": file access denied under workspace-write mode`, "FS_SANDBOX_DENIED");
+ 		return fresh;
+ 	}
++	/**
++	* The `self-checking` fence path: the sanctioned re-run — the exact target
++	* was already intercepted once in this session — delegates unfenced, i.e.
++	* full access. Anything else probes with the workspace-write boundary (the
++	* SAME writable-root set, so the probe allows exactly what workspace-write
++	* would); a probe target outside that boundary is the one-time
++	* INTERCEPTION: the target is recorded on the calling session and the
++	* re-run notice is thrown instead of a plain denial, so the tool layer
++	* passes the notice through verbatim. An agentless call has no session to
++	* record on and throws the plain workspace-write denial.
++	* @param target - the resolved target to write.
++	* @param policy - the resolved self-checking policy.
++	* @returns the exact target the mutation must use.
++	*/
++	async selfCheckTarget(target, policy) {
++		const sessionId = policy.sessionId;
++		const key = target.displayPath;
++		if (sessionId !== void 0 && this.ctx.sandboxPolicy.selfCheckAllowed(sessionId, key)) return target;
++		const fresh = await this.resolve(target.displayPath);
++		let contained = false;
++		for (const root of writableRoots({
++			...policy,
++			mode: "workspace-write"
++		})) if (await isPathUnder(fresh.targetKey, root)) {
++			contained = true;
++			break;
++		}
++		if (!contained) {
++			if (sessionId === void 0) throw new FsError(`cannot write "${target.displayPath}": file access denied under workspace-write mode`, "FS_SANDBOX_DENIED");
++			this.ctx.sandboxPolicy.selfCheckRecord(sessionId, key);
++			throw new FsError(`[sandbox: self-check intercepted — this operation accesses a path outside the workspace ("${target.displayPath}"); re-run the exact same operation and it will be allowed with full access]`, "FS_SELFCHECK_INTERCEPTED");
++		}
++		return fresh;
++	}
+ };
+ //#endregion
+ export { SandboxedFileSystem, SandboxedFileSystem as default };

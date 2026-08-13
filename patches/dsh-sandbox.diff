@@ -1,0 +1,106 @@
+--- a/dsh-sandbox/lib/index.js
++++ b/dsh-sandbox/lib/index.js
+@@ -27,8 +27,9 @@
+ * registry-global while the effective mode is per-call truth.
+ */
+ const WIDER_MODES = {
+-	"read-only": ["workspace-write", "danger-full-access"],
+-	"workspace-write": ["danger-full-access"]
++	"read-only": ["workspace-write", "self-checking", "danger-full-access"],
++	"workspace-write": ["self-checking", "danger-full-access"],
++	"self-checking": ["danger-full-access"]
+ };
+ /**
+ * The closed escalation-target vocabulary — every mode a call could ever
+@@ -38,7 +39,7 @@
+ * mode sits below it (a `danger-full-access` default would advertise nothing
+ * while a narrower-switched session stays confined with no lever).
+ */
+-const ESCALATION_TARGETS = ["workspace-write", "danger-full-access"];
++const ESCALATION_TARGETS = ["workspace-write", "self-checking", "danger-full-access"];
+ /**
+ * Validate the escalation argument pairing a tool schema cannot express:
+ * `sandbox_permissions` and `justification` travel together — an approval
+@@ -76,6 +77,19 @@
+ 	return `[sandbox: escalation available — retry this exact ${subject} once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]`;
+ }
+ /**
++* The model-facing self-checking interception notice — the marker a
++* `self-checking` run reports instead of a plain denial when its
++* workspace-write probe was denied for touching paths outside the workspace.
++* It teaches the one continuation this mode allows: re-running the EXACT same
++* {@link subject} executes it with full access, automatically.
++* @param subject - the family's noun for the intercepted action (`command` for
++*   bash/pwsh, `operation` for a filesystem mutation).
++* @returns the notice line, exactly as the model sees it.
++*/
++function selfCheckNoticeMarker(subject) {
++	return `[sandbox: self-check intercepted — this ${subject} attempted to access a path outside the workspace; re-run the exact same ${subject} and it will be allowed with full access]`;
++}
++/**
+ * Resolve a sandbox-escalation request BEFORE anything executes: check strict
+ * widening against the call's effective mode, then resolve the approval
+ * channel, then map every outcome — the ordered fail-closed sequence both
+@@ -198,5 +212,5 @@
+ 	}
+ };
+ //#endregion
+-export { ESCALATION_TARGETS, SANDBOX_UNAVAILABLE, SandboxProvider, SandboxProvider as default, SandboxUnavailableError, WIDER_MODES, approveEscalation, canonicalPath, escalationHintMarker, sandboxDenialMarker, validateEscalationArgs, writableRoots };
++export { ESCALATION_TARGETS, SANDBOX_UNAVAILABLE, SandboxProvider, SandboxProvider as default, SandboxUnavailableError, WIDER_MODES, approveEscalation, canonicalPath, escalationHintMarker, sandboxDenialMarker, selfCheckNoticeMarker, validateEscalationArgs, writableRoots };
+ 
+--- a/dsh-sandbox/lib/types/escalation.d.ts
++++ b/dsh-sandbox/lib/types/escalation.d.ts
+@@ -61,6 +61,17 @@
+  */
+ export declare function escalationHintMarker(subject: string): string;
+ /**
++ * The model-facing self-checking interception notice — the marker a
++ * `self-checking` run reports instead of a plain denial when its
++ * workspace-write probe was denied for touching paths outside the workspace.
++ * It teaches the one continuation this mode allows: re-running the EXACT same
++ * subject executes it with full access, automatically.
++ * @param subject - the family's noun for the intercepted action (`command` for
++ *   bash/pwsh, `operation` for a filesystem mutation).
++ * @returns the notice line, exactly as the model sees it.
++ */
++export declare function selfCheckNoticeMarker(subject: string): string;
++/**
+  * The closed outcome vocabulary of one escalation ask — structurally identical
+  * to the approval seam's `ApprovalOutcome` so an `ApprovalService.request`
+  * return is assignable without this package importing it.
+--- a/dsh-sandbox/lib/types/index.d.ts
++++ b/dsh-sandbox/lib/types/index.d.ts
+@@ -7,19 +7,27 @@
+ import { Context, Service } from '@deepseek-ai/cordis';
+ import { HarnessError } from '@deepseek-ai/dsh-llm';
+ import type { SessionId } from '@deepseek-ai/dsh-session';
+-export { ESCALATION_TARGETS, WIDER_MODES, approveEscalation, escalationHintMarker, sandboxDenialMarker, validateEscalationArgs, } from './escalation.ts';
++export { ESCALATION_TARGETS, WIDER_MODES, approveEscalation, escalationHintMarker, sandboxDenialMarker, selfCheckNoticeMarker, validateEscalationArgs, } from './escalation.ts';
+ export type { EscalationApproval, EscalationApprover, EscalationOutcome, EscalationRequest } from './escalation.ts';
+ export { canonicalPath, writableRoots } from './roots.ts';
+ /**
+  * File-effect policy for confined processes. `read-only` permits only required
+  * sinks such as `/dev/null`; `workspace-write` also permits the workspace and a
+- * backend-defined temp area; `danger-full-access` bypasses confinement. Network
+- * and process visibility are outside this vocabulary.
++ * backend-defined temp area; `self-checking` executes like `workspace-write`
++ * first and, when that probe is denied for touching paths outside the
++ * workspace, intercepts once — re-running the exact same command/operation
++ * executes it with full access; `danger-full-access` bypasses confinement.
++ * Network and process visibility are outside this vocabulary.
+  */
+-export type SandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
+-/** A confining (non-`danger-full-access`) mode — the modes a {@link SandboxPolicy} can carry. */
+-export type ConfinedSandboxMode = Exclude<SandboxMode, 'danger-full-access'>;
++export type SandboxMode = 'read-only' | 'workspace-write' | 'self-checking' | 'danger-full-access';
+ /**
++ * The modes a {@link SandboxPolicy} can carry: the enforcement seam's confine
++ * vocabulary. `self-checking` never reaches the provider — its consumers
++ * (the bash/pwsh executors and the filesystem fence) translate it into a
++ * `workspace-write` probe or, for an already-allowed re-run, full access.
++ */
++export type ConfinedSandboxMode = Exclude<SandboxMode, 'danger-full-access' | 'self-checking'>;
++/**
+  * The complete file-effect policy resolved for one capability call. The root
+  * is carried even under modes that do not consume it so callers can resolve
+  * policy once before choosing the enforcement path.

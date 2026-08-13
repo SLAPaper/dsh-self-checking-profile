@@ -1,0 +1,17 @@
+# build artifacts
+profile/node_modules/
+built-fork/
+release-test/
+*.zip
+*.tgz
+
+# pnpm / npm
+.pnpm-store/
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# scratch
+tmp-pack/
+alias-test/
+*.log

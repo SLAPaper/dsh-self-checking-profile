@@ -1,0 +1,12 @@
+{
+  "package": "dsh-sandbox-local",
+  "builtAgainst": "0.1.0-rc.6",
+  "files": {
+    "lib/index.js": [
+      {
+        "old": "\t\t\"permission denied\"",
+        "new": "\t\t\"permission denied\",\n\t\t\"operation not permitted\""
+      }
+    ]
+  }
+}
