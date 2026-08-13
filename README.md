@@ -175,6 +175,24 @@ node tools/build-release.mjs [version]
   escape hatch — they stay denied (fail closed).
 - Persistent terminals confine as workspace-write (no re-run flow inside a
   terminal).
+- **Interception blind spot: process-level restrictions are not intercepted.**
+  The interception fires only when the workspace-write probe fails with a
+  *file ACL denial* that matches the backend's stderr signatures. Other
+  restrictions of the restricted token leave no such signature, so they are
+  neither intercepted nor unlocked by a re-run:
+  - named pipes (`ssh.exe`/`sh.exe` "couldn't create signal pipe", capturing
+    a child process's piped stdio),
+  - TLS / credential stores (schannel `SEC_E_NO_CREDENTIALS`, Git Credential
+    Manager prompts),
+  - operations needing privileges or Write-DAC (e.g. `SetNamedSecurityInfo`).
+  When a command fails this way, the model should first try an alternative
+  that runs under the probe (different flags, a different TLS backend,
+  credentials supplied another way); if full access is genuinely required,
+  it may request an escalation with `sandbox_permissions:
+  "danger-full-access"` + `justification` — this needs a working approval
+  channel, so under an approval policy of `never` the preset must be switched
+  first. As a user, if you see the agent stuck re-failing on the same
+  non-file error, prompt it to request the escalation.
 - Do **not** run `dsh plugin --profile <name> install` in a profile whose
   forks were assembled by copy unless you keep `forks/` in sync (the package
   manager rebuilds node_modules from the declared `file:` deps).

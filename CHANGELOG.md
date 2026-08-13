@@ -13,6 +13,17 @@ All notable changes to this repository are documented here. The baseline
   the fs fence notice, the policy context, the tool descriptions, and the
   preset description.
 
+### Docs
+
+- README documents the interception blind spot: process-level restrictions of
+  the restricted token (named pipes, TLS/credential stores, privilege/Write-DAC
+  operations) leave no denial signature, so they are neither intercepted nor
+  unlocked by a re-run. The recommended path is to try a probe-compatible
+  alternative first, and to request an escalation
+  (`sandbox_permissions: "danger-full-access"` + `justification`) when full
+  access is genuinely required; users are advised to prompt the agent to
+  escalate when it is stuck re-failing on the same non-file error.
+
 ## 0.1.0 — 2026-08-14
 
 Initial release: the **Self Checking** sandbox mode as a dsh profile.
