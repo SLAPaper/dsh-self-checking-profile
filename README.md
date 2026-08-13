@@ -189,9 +189,10 @@ node tools/build-release.mjs [version]
   that runs under the probe (different flags, a different TLS backend,
   credentials supplied another way); if full access is genuinely required,
   it may request an escalation with `sandbox_permissions:
-  "danger-full-access"` + `justification` — this needs a working approval
-  channel, so under an approval policy of `never` the preset must be switched
-  first. As a user, if you see the agent stuck re-failing on the same
+  "danger-full-access"` + `justification` — the Self Checking preset ships
+  with `approval: ask`, so the escalation prompt reaches the user (if the
+  session's approval policy was switched to `never` separately, switch it
+  back first). As a user, if you see the agent stuck re-failing on the same
   non-file error, prompt it to request the escalation.
 - Do **not** run `dsh plugin --profile <name> install` in a profile whose
   forks were assembled by copy unless you keep `forks/` in sync (the package

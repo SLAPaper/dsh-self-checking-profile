@@ -2,11 +2,13 @@
 # a top-level YAML array of loader patch entries (id-targeted config
 # overrides, disables, and insert lists; `!!js` expressions allowed).
 
-# Self Checking permission preset — full access (approval: never) with a
+# Self Checking permission preset — full access (approval: ask) with a
 # workspace boundary check: commands run under workspace-write first; a probe
 # denied for accessing a path outside the workspace is intercepted once with a
 # `[sandbox: self-check intercepted ...]` notice, and re-running the exact same
 # command/operation executes it with full access automatically.
+# approval: ask keeps the human approval channel available, so the model can
+# escalate (sandbox_permissions) for restrictions the probe cannot intercept.
 #
 # The mode is implemented by this profile's fork layer, shipped in two
 # equivalent forms:
@@ -36,7 +38,7 @@
         approval: ask
       self-checking:
         sandbox: self-checking
-        approval: never
+        approval: ask
         name: Self Checking
         description: "Full access with a workspace boundary check: commands run under workspace-write first; an intercepted outside-workspace access is allowed — only when the access is intentional — by re-running the same command, which executes with full access."
       danger-full-access:

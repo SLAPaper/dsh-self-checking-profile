@@ -12,6 +12,11 @@ All notable changes to this repository are documented here. The baseline
   that a non-intentional re-run must not happen. Applied to the shell marker,
   the fs fence notice, the policy context, the tool descriptions, and the
   preset description.
+- The Self Checking preset now bundles `approval: ask` (was `never`): the
+  re-run flow stays approval-free, but the human approval channel remains
+  available so the model can escalate
+  (`sandbox_permissions: "danger-full-access"` + `justification`) for
+  restrictions the probe cannot intercept.
 
 ### Docs
 
