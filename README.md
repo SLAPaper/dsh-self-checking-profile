@@ -23,11 +23,14 @@ Self Checking is "full access with a workspace boundary check":
 
   ```
   [sandbox: self-check intercepted — this command attempted to access a path
-  outside the workspace; re-run the exact same command and it will be allowed
-  with full access]
+  outside the workspace; unless this access is intentional, do not re-run this
+  command — if it IS intentional, re-run the exact same command and it will be
+  allowed with full access]
   ```
-
   and nothing was executed.
+
+  The notice demands a deliberate self-check: a re-run is the sanctioned
+  continuation only when the outside access is intentional.
 - Re-running the **exact same command/operation** executes it with **full
   access** (no approval prompt), for the rest of the session.
 

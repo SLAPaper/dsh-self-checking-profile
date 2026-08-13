@@ -85,7 +85,7 @@ function renderPolicyContext(policy) {
 	switch (policy.mode) {
 		case "read-only": return "Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.";
 		case "workspace-write": return `Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify(policy.workspaceRoot)}. Some platform temporary areas may also be writable.`;
-		case "self-checking": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access.`;
+		case "self-checking": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access only when that access is intentional — otherwise do not re-run.`;
 		case "danger-full-access": return "Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.";
 		/* v8 ignore next 4 -- SandboxMode is a typed same-process closed union; this branch is only the static exhaustiveness guard. */
 		default: {

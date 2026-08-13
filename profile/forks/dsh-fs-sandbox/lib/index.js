@@ -200,7 +200,7 @@ var SandboxedFileSystem = class extends LocalFileSystem {
 		if (!contained) {
 			if (sessionId === void 0) throw new FsError(`cannot write "${target.displayPath}": file access denied under workspace-write mode`, "FS_SANDBOX_DENIED");
 			this.ctx.sandboxPolicy.selfCheckRecord(sessionId, key);
-			throw new FsError(`[sandbox: self-check intercepted — this operation accesses a path outside the workspace ("${target.displayPath}"); re-run the exact same operation and it will be allowed with full access]`, "FS_SELFCHECK_INTERCEPTED");
+			throw new FsError(`[sandbox: self-check intercepted — this operation accesses a path outside the workspace ("${target.displayPath}"); unless this access is intentional, do not re-run this operation — if it IS intentional, re-run the exact same operation and it will be allowed with full access]`, "FS_SELFCHECK_INTERCEPTED");
 		}
 		return fresh;
 	}

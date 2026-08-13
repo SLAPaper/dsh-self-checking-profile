@@ -3,6 +3,16 @@
 All notable changes to this repository are documented here. The baseline
 (`builtAgainst`) is the upstream `@deepseek-ai/dsh` 0.1.0-rc.6 install.
 
+## Unreleased
+
+### Changed
+
+- Interception notice is now defensive: it states that a re-run is the
+  sanctioned continuation **only when the outside access is intentional** and
+  that a non-intentional re-run must not happen. Applied to the shell marker,
+  the fs fence notice, the policy context, the tool descriptions, and the
+  preset description.
+
 ## 0.1.0 — 2026-08-14
 
 Initial release: the **Self Checking** sandbox mode as a dsh profile.

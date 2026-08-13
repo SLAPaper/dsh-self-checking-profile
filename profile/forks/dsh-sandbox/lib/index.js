@@ -80,14 +80,16 @@ function escalationHintMarker(subject) {
 * The model-facing self-checking interception notice — the marker a
 * `self-checking` run reports instead of a plain denial when its
 * workspace-write probe was denied for touching paths outside the workspace.
-* It teaches the one continuation this mode allows: re-running the EXACT same
-* {@link subject} executes it with full access, automatically.
+* It demands a deliberate self-check before continuing: unless the outside
+* access is intentional, the model must NOT re-run; re-running the EXACT same
+* {@link subject} is the only sanctioned continuation and executes it with
+* full access, automatically.
 * @param subject - the family's noun for the intercepted action (`command` for
 *   bash/pwsh, `operation` for a filesystem mutation).
 * @returns the notice line, exactly as the model sees it.
 */
 function selfCheckNoticeMarker(subject) {
-	return `[sandbox: self-check intercepted — this ${subject} attempted to access a path outside the workspace; re-run the exact same ${subject} and it will be allowed with full access]`;
+	return `[sandbox: self-check intercepted — this ${subject} attempted to access a path outside the workspace; unless this access is intentional, do not re-run this ${subject} — if it IS intentional, re-run the exact same ${subject} and it will be allowed with full access]`;
 }
 /**
 * Resolve a sandbox-escalation request BEFORE anything executes: check strict

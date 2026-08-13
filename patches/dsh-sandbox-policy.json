@@ -9,7 +9,7 @@
       },
       {
         "old": "\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";",
-        "new": "\t\tcase \"self-checking\": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access.`;\n\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";"
+        "new": "\t\tcase \"self-checking\": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access only when that access is intentional — otherwise do not re-run.`;\n\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";"
       },
       {
         "old": "\t\t\t\"danger-full-access\"",

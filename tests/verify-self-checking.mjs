@@ -9,16 +9,21 @@
 //     the identical re-run is allowed with full access, agentless stays denied.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir, homedir } from "node:os";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 // Resolution bases, overridable:
-//   DSH_SC_FORKS   - the fork layer to test (default: this repo's profile/forks)
+//   DSH_SC_FORKS    - the fork layer to test (default: the installed
+//                     "self-checking" profile). The repo's own profile/forks
+//                     cannot be imported directly from this workspace — the
+//                     forks' undeclared dependencies (cordis etc.) resolve via
+//                     the node_modules parent walk, which must reach the dsh
+//                     shared fallback (~/.dsh/profiles/node_modules).
 //   DSH_SC_UPSTREAM - the pristine @deepseek-ai install for non-forked imports
 //                     (default: the DSH_HOME shared fallback)
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const FORK_ROOT = process.env.DSH_SC_FORKS ?? join(repoRoot, "profile", "forks");
-const CACHE_ROOT = process.env.DSH_SC_UPSTREAM ?? join(process.env.DSH_HOME ?? join(homedir(), ".dsh"), "profiles", "node_modules", "@deepseek-ai");
+const dshHome = process.env.DSH_HOME ?? join(homedir(), ".dsh");
+const FORK_ROOT = process.env.DSH_SC_FORKS ?? join(dshHome, "profiles", "self-checking", "node_modules", "@deepseek-ai");
+const CACHE_ROOT = process.env.DSH_SC_UPSTREAM ?? join(dshHome, "profiles", "node_modules", "@deepseek-ai");
 const load = (pkg, root = FORK_ROOT) => import(pathToFileURL(join(root, pkg, "lib/index.js")).href);
 
 let failures = 0;
@@ -76,7 +81,7 @@ assert(text.includes("Current DSH file policy: self-checking"), "context announc
 assert(text.includes("re-running the exact same command or operation executes it with full access"), "context teaches the re-run continuation");
 
 console.log("== 4. real fs fence ==");
-const base = mkdtempSync(join(homedir(), "dsh-sc-verify-"));
+const base = mkdtempSync(join(process.env.DSH_SC_FENCE_DIR ?? homedir(), "dsh-sc-verify-"));
 const workspace = join(base, "workspace");
 const outside = join(base, "outside");
 mkdirSync(workspace);
