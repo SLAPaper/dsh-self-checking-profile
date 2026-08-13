@@ -35,6 +35,9 @@ All notable changes to this repository are documented here. The baseline
 - Added a Chinese translation of the README (`README.zh-CN.md`) with mutual
   English ↔ 中文 links at the top of both documents; the release zip ships both
   files.
+- Both READMEs now embed a screenshot of Self Checking in the composer
+  permission picker (`docs/self-checking-permission-picker.png`), shipped in
+  the release zip via the new `docs/` copy entry.
 
 ## 0.1.0 — 2026-08-14
 

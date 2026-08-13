@@ -42,6 +42,8 @@ Self Checking 是"带工作区边界检查的完全访问"：
 它与其他权限预设一样可选——设置 → 权限（新会话默认）或输入框权限选择器 /
 `/permission self-checking`（当前会话）。
 
+![输入框权限选择器中的 Self Checking 选项](docs/self-checking-permission-picker.png)
+
 ## 仓库结构
 
 ```
@@ -62,6 +64,7 @@ Self Checking 是"带工作区边界检查的完全访问"：
 │   └── profile-acl-test.mjs       针对已安装 profile 的完整 ACL 链路
 ├── install.ps1 / install.sh  将 profile 安装到 $DSH_HOME
 ├── verify.mjs                验收校验器（复制进每个安装）
+├── docs/                     README 引用的截图
 ├── CHANGELOG.md
 └── LICENSE                   MIT（上游包保留各自的 LICENSE）
 ```

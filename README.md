@@ -46,6 +46,8 @@ It is selectable like any other permission preset — Settings → Permission
 (default for new sessions) or the composer permission picker / `/permission
 self-checking` (current session).
 
+![Self Checking in the composer permission picker](docs/self-checking-permission-picker.png)
+
 ## Repository layout
 
 ```
@@ -66,6 +68,7 @@ self-checking` (current session).
 │   └── profile-acl-test.mjs       full ACL chain against an installed profile
 ├── install.ps1 / install.sh  install the profile into $DSH_HOME
 ├── verify.mjs                acceptance verifier (copied into each install)
+├── docs/                     screenshots referenced by the READMEs
 ├── CHANGELOG.md
 └── LICENSE                   MIT (upstream packages keep their own LICENSE)
 ```
