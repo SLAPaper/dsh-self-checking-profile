@@ -13,7 +13,7 @@ const VERSION = process.argv[2] ?? "0.1.0-rc.6";
 const DIST = join(ROOT, "dist");
 const OUT = join(ROOT, `dsh-profile-self-checking-${VERSION}.zip`);
 
-const COPY = ["README.md", "README.zh-CN.md", "LICENSE", "CHANGELOG.md", "install.ps1", "install.sh", "verify.mjs", "patches", "tools", "tests", "docs"];
+const COPY = ["README.md", "README.zh-CN.md", "LICENSE", "CHANGELOG.md", "install.ps1", "install.sh", "verify.mjs", "patches", "tools", "tests", "docs", "upstream"];
 const PROFILE_SKIP = new Set(["node_modules", ".pnpm-store"]);
 
 rmSync(DIST, { recursive: true, force: true });

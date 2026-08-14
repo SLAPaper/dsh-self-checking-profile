@@ -17,6 +17,19 @@ All notable changes to this repository are documented here. The baseline
   available so the model can escalate
   (`sandbox_permissions: "danger-full-access"` + `justification`) for
   restrictions the probe cannot intercept.
+- Upgrade path replaced: the repo now vendors the baseline npm package bytes
+  under `upstream/` (git-tracked, versioned in `upstream/VERSION`), and
+  upgrading to a new dsh baseline is a three-way merge
+  (`tools/merge-upstream.mjs`, diff3 via `git merge-file`) over the committed
+  snapshot instead of a blind re-patch: upstream-only changes are taken,
+  fork-only changes are kept, both-changed files are merged, genuine conflicts
+  surface with conflict markers, new files are adopted, deletions are followed.
+  `tools/snapshot-upstream.mjs` vendors a baseline from scratch. The old
+  workflow ("point rebuild-fork.mjs at an external pristine install") is now
+  the special case of rebuilding against `upstream/@deepseek-ai`.
+- `gen-patches.mjs` defaults to the vendored snapshot + `profile/forks`;
+  `.gitattributes` pins LF for `*.d.ts`, `LICENSE`, and `upstream/**` so the
+  byte-exact comparisons hold on every checkout.
 
 ### Docs
 

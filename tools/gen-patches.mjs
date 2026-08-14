@@ -5,11 +5,12 @@
 // byte-for-byte; every replacement's old-string is verified unique so the
 // apply side can never patch the wrong spot.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const UPSTREAM = process.argv[2] ?? "C:/Users/slapa/scoop/persist/nodejs/cache/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai";
-const FORK = process.argv[3] ?? "C:/Users/slapa/.dsh/profiles/web_new/node_modules/@deepseek-ai";
-const OUT = process.argv[4] ?? "C:/Users/slapa/workspace/dsh-self-checking/release/patches";
+const UPSTREAM = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "upstream", "@deepseek-ai");
+const FORK = process.argv[3] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "profile", "forks");
+const OUT = process.argv[4] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "patches");
 
 const PACKAGES = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation"];
 

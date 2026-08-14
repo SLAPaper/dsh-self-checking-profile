@@ -18,6 +18,13 @@ layer plus release tooling.
 - **Patch set** — `patches/*.json` (machine-applied anchored replacements) and
   `patches/*.diff` (human review) that rebuild the fork layer from a pristine
   dsh 0.1.0-rc.6 install, byte-for-byte.
+- **Upstream tracking** — `upstream/` vendors the exact npm package bytes of
+  the baseline, git-tracked and versioned in `upstream/VERSION`. Upgrading to
+  a new dsh baseline is a **three-way merge** over that committed snapshot
+  (`tools/merge-upstream.mjs`), not a blind re-patch: files changed only by
+  upstream are taken, files changed only by the fork are kept, files changed
+  on both sides are merged with `git merge-file` (diff3), and genuine
+  conflicts surface with markers instead of silently misapplying.
 - **Release tooling** — install scripts, an acceptance verifier, a rebuild
   tool for upstream upgrades, and a release packager.
 
@@ -51,14 +58,19 @@ self-checking` (current session).
 ## Repository layout
 
 ```
+├── upstream/                  vendored baseline snapshot (git-tracked)
+│   ├── VERSION                baseline version (e.g. 0.1.0-rc.6)
+│   └── @deepseek-ai/          exact npm package bytes of the 11 packages
 ├── profile/                  the installable profile template
-│   ├── forks/@deepseek-ai/   the 11 forked packages (source of truth)
+│   ├── forks/                the 11 forked packages (source of truth)
 │   ├── cordis.patch.yml      Self Checking permission preset (+ layout notes)
 │   ├── cordis.yml            profile root (empty entry list)
 │   ├── package.json          bundles + fork `file:` dependencies
 │   └── pnpm-workspace.yaml   nodeLinker: hoisted
 ├── patches/                  rebuild manifests (.json) + review diffs (.diff)
 ├── tools/
+│   ├── snapshot-upstream.mjs vendor a new upstream baseline into upstream/
+│   ├── merge-upstream.mjs    three-way merge a new baseline into the forks
 │   ├── gen-patches.mjs       regenerate the patch set from pristine + forks
 │   ├── rebuild-fork.mjs      rebuild the fork layer from pristine + patches
 │   └── build-release.mjs     package the release zip
@@ -153,16 +165,48 @@ node tests/verify-self-checking.mjs
 node tests/verify-acl-probe.mjs
 ```
 
-### Rebuilding the fork layer after an upstream upgrade
+### Upgrading to a new dsh baseline
+
+The vendored snapshot pins the exact npm package bytes of the baseline;
+upgrading is a tracked three-way merge, not a blind re-patch:
 
 ```bash
-# after upgrading dsh to a new version (or to verify the baseline):
-node tools/rebuild-fork.mjs --upstream <pristine @deepseek-ai dir> --out <dir> --check profile/forks
+# 1. obtain an npm-style extraction of the NEW dsh packages (e.g. the
+#    node_modules/@deepseek-ai of a matching new install, or unpacked
+#    tarballs) — keep it outside the repo
+
+# 2. three-way merge it into the fork layer; on success the vendored
+#    snapshot is replaced and upstream/VERSION updated
+node tools/merge-upstream.mjs 0.1.0-rc.7 <new-extraction-dir>
+#    merge rules: upstream-only changes are taken, fork-only changes are kept,
+#    both-changed files are merged with git merge-file (diff3); genuine
+#    conflicts are written into profile/forks with conflict markers and
+#    reported (exit code 1), new upstream files are adopted, deleted files are
+#    followed (or kept with a warning when the fork modified them)
+
+# 3. resolve any conflict markers in profile/forks, then regenerate the patch
+#    set and verify the rebuild is byte-identical:
+node tools/gen-patches.mjs
+node tools/rebuild-fork.mjs --upstream upstream/@deepseek-ai --out <tmp> --check profile/forks
+node tests/verify-self-checking.mjs
+
+# 4. commit upstream/ + profile/forks + patches together
 ```
 
-If the new upstream drifted from the `builtAgainst` baseline, `rebuild-fork.mjs`
-fails loudly with the offending anchor; regenerate the patch manifests against
-the new baseline with:
+`tools/snapshot-upstream.mjs <version> <extraction-dir>` vendors a baseline
+from scratch (used to (re)create `upstream/`, e.g. the initial 0.1.0-rc.6
+snapshot); commit it before running a merge, because the merge reads its base
+from git HEAD.
+
+Rebuilding the fork layer without an upgrade (e.g. after editing
+`profile/forks/` by hand, or to check the baseline):
+
+```bash
+node tools/rebuild-fork.mjs --upstream upstream/@deepseek-ai --out <dir> --check profile/forks
+```
+
+If a rebuilt fork drifts from the `builtAgainst` baseline, `rebuild-fork.mjs`
+fails loudly with the offending anchor; regenerate the patch manifests with:
 
 ```bash
 node tools/gen-patches.mjs <upstream> <fork> <patches-out>
@@ -173,7 +217,7 @@ node tools/gen-patches.mjs <upstream> <fork> <patches-out>
 ```bash
 node tools/build-release.mjs [version]
 # → dsh-profile-self-checking-<version>.zip (profile/ minus node_modules,
-#   patches, tools, tests, docs, install scripts)
+#   upstream/, patches, tools, tests, docs, install scripts)
 ```
 
 ## Notes / known limitations

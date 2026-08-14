@@ -16,6 +16,12 @@
   profile 遮蔽同名的上游包；上游安装保持原样。
 - **补丁集** —— `patches/*.json`（机器可套用的锚定替换）与 `patches/*.diff`
   （供人工审阅），可从一份干净的 dsh 0.1.0-rc.6 安装逐字节重建 fork 层。
+- **上游版本追踪** —— `upstream/` 以 git 跟踪的方式固化基线对应的 npm 包
+  原始字节，版本记录在 `upstream/VERSION`。升级到新的 dsh 基线是对这份已提交
+  快照的**三方合并**（`tools/merge-upstream.mjs`），而非盲目重打补丁：只有上游
+  改动的文件直接采纳，只有 fork 改动的文件保持不动，双方都改动的文件用
+  `git merge-file`（diff3）合并，真正的冲突会带冲突标记浮出水面而不是静默错
+  套。
 - **发布工具链** —— 安装脚本、验收校验器、上游升级重建工具与发布打包器。
 
 ## Self Checking 做什么
@@ -47,17 +53,22 @@ Self Checking 是"带工作区边界检查的完全访问"：
 ## 仓库结构
 
 ```
-├── profile/                  可安装的 profile 模板
-│   ├── forks/@deepseek-ai/   11 个 fork 包（唯一事实来源）
-│   ├── cordis.patch.yml      Self Checking 权限预设（含布局说明）
-│   ├── cordis.yml            profile 根（空条目列表）
-│   ├── package.json          打包产物 + fork 的 file: 依赖
-│   └── pnpm-workspace.yaml   nodeLinker: hoisted
-├── patches/                  重建清单（.json）+ 审阅用 diff（.diff）
+├── upstream/                  固化的基线快照（git 跟踪）
+│   ├── VERSION                基线版本（如 0.1.0-rc.6）
+│   └── @deepseek-ai/          11 个包的 npm 原始字节
+├── profile/                   可安装的 profile 模板
+│   ├── forks/                 11 个 fork 包（唯一事实来源）
+│   ├── cordis.patch.yml       Self Checking 权限预设（含布局说明）
+│   ├── cordis.yml             profile 根（空条目列表）
+│   ├── package.json           打包产物 + fork 的 file: 依赖
+│   └── pnpm-workspace.yaml    nodeLinker: hoisted
+├── patches/                   重建清单（.json）+ 审阅用 diff（.diff）
 ├── tools/
-│   ├── gen-patches.mjs       由干净安装 + forks 重新生成补丁集
-│   ├── rebuild-fork.mjs      由干净安装 + 补丁重建 fork 层
-│   └── build-release.mjs     打包发布 zip
+│   ├── snapshot-upstream.mjs  将新上游基线固化进 upstream/
+│   ├── merge-upstream.mjs     将新基线三方合并进 forks
+│   ├── gen-patches.mjs        由干净安装 + forks 重新生成补丁集
+│   ├── rebuild-fork.mjs       由干净安装 + 补丁重建 fork 层
+│   └── build-release.mjs      打包发布 zip
 ├── tests/
 │   ├── verify-self-checking.mjs   开发回归（词汇/门控/围栏/执行器）
 │   ├── verify-acl-probe.mjs       真实 windows-acl 运行器探针
@@ -144,15 +155,43 @@ node tests/verify-self-checking.mjs
 node tests/verify-acl-probe.mjs
 ```
 
-### 上游升级后重建 fork 层
+### 升级到新的 dsh 基线
+
+固化的快照锁定了基线的 npm 包原始字节；升级是对它的一次可追踪的三方合并，
+而不是盲目重打补丁：
 
 ```bash
-# 将 dsh 升级到新版本后（或用于校验基线）：
-node tools/rebuild-fork.mjs --upstream <干净的 @deepseek-ai 目录> --out <目录> --check profile/forks
+# 1. 准备一份新 dsh 包的 npm 风格解包（例如新版安装的
+#    node_modules/@deepseek-ai，或解包的 tarball）——放在仓库外
+
+# 2. 三方合并进 fork 层；成功后固化的快照会被替换，upstream/VERSION 更新
+node tools/merge-upstream.mjs 0.1.0-rc.7 <新解包目录>
+#    合并规则：只有上游改动的文件直接采纳；只有 fork 改动的文件保持不动；
+#    双方都改动的文件用 git merge-file（diff3）合并；真正的冲突会带冲突标记
+#    写入 profile/forks 并报告（退出码 1）；上游新增的文件被采纳；上游删除的
+#    文件跟随删除（若 fork 改过则保留并警告）
+
+# 3. 解决 profile/forks 中的冲突标记（如有），然后重新生成补丁集并校验
+#    逐字节重建：
+node tools/gen-patches.mjs
+node tools/rebuild-fork.mjs --upstream upstream/@deepseek-ai --out <临时目录> --check profile/forks
+node tests/verify-self-checking.mjs
+
+# 4. 一起提交 upstream/ + profile/forks + patches
 ```
 
-若新上游偏离了 `builtAgainst` 基线，`rebuild-fork.mjs` 会以出错锚点响亮失败；
-请针对新基线重新生成补丁清单：
+`tools/snapshot-upstream.mjs <版本> <解包目录>` 用于从零固化基线（例如最初
+的 0.1.0-rc.6 快照，或重建 `upstream/`）；必须先提交再运行合并，因为合并
+从 git HEAD 读取 base。
+
+不升级时重建 fork 层（例如手工编辑 `profile/forks/` 之后，或校验基线）：
+
+```bash
+node tools/rebuild-fork.mjs --upstream upstream/@deepseek-ai --out <目录> --check profile/forks
+```
+
+若重建结果偏离 `builtAgainst` 基线，`rebuild-fork.mjs` 会以出错锚点响亮失败；
+请重新生成补丁清单：
 
 ```bash
 node tools/gen-patches.mjs <upstream> <fork> <patches-out>
@@ -163,7 +202,7 @@ node tools/gen-patches.mjs <upstream> <fork> <patches-out>
 ```bash
 node tools/build-release.mjs [version]
 # → dsh-profile-self-checking-<version>.zip（profile/ 去掉 node_modules，
-#   外加 patches、tools、tests、文档、安装脚本）
+#   外加 upstream/、patches、tools、tests、文档、安装脚本）
 ```
 
 ## 说明 / 已知限制
