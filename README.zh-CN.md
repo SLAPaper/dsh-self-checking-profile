@@ -1,5 +1,7 @@
 # dsh Self Checking profile（自检沙箱配置）
 
+![输入框权限选择器中的 Self Checking 选项](docs/self-checking-permission-picker.png)
+
 [English](README.md) | 中文
 
 本项目基于 **dsh / DeepSeek Harness** —— DeepSeek 开源的 AI 智能体工作台
@@ -47,8 +49,6 @@ Self Checking 是"带工作区边界检查的完全访问"：
 
 它与其他权限预设一样可选——设置 → 权限（新会话默认）或输入框权限选择器 /
 `/permission self-checking`（当前会话）。
-
-![输入框权限选择器中的 Self Checking 选项](docs/self-checking-permission-picker.png)
 
 ## 仓库结构
 
