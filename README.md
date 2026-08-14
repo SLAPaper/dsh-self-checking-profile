@@ -1,5 +1,7 @@
 # dsh Self Checking profile
 
+![Self Checking in the composer permission picker](docs/self-checking-permission-picker.png)
+
 [English](README.md) | [中文](README.zh-CN.md)
 
 This project is based on **dsh / DeepSeek Harness**, the open-source AI agent
@@ -52,8 +54,6 @@ Self Checking is "full access with a workspace boundary check":
 It is selectable like any other permission preset — Settings → Permission
 (default for new sessions) or the composer permission picker / `/permission
 self-checking` (current session).
-
-![Self Checking in the composer permission picker](docs/self-checking-permission-picker.png)
 
 ## Repository layout
 
