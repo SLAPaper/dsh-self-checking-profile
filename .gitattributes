@@ -7,3 +7,5 @@
 *.md text eol=lf
 *.ps1 text eol=crlf
 *.sh text eol=lf
+# vendored upstream npm packages must stay byte-exact (LF) on every checkout
+upstream/** text eol=lf
