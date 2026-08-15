@@ -9,7 +9,7 @@
       },
       {
         "old": "\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";",
-        "new": "\t\tcase \"self-checking\": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access only when that access is intentional — otherwise do not re-run.`;\n\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";"
+        "new": "\t\tcase \"self-checking\": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; an operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and a command that runs confined but fails (non-zero exit) may be failing on a sandbox permission issue — in both cases the notice demands a deliberate self-check: re-running the exact same command or operation with full access is sanctioned ONLY when that access is intentional — otherwise do not re-run.`;\n\t\tcase \"danger-full-access\": return \"Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\";"
       },
       {
         "old": "\t\t\t\"danger-full-access\"",
@@ -17,7 +17,7 @@
       },
       {
         "old": "\tconstructor(ctx, config) {",
-        "new": "\t/**\n\t* Per-session self-checking intercept state: `sessionId` → the set of\n\t* command/operation keys already intercepted once under `self-checking`\n\t* mode. A recorded key means the next identical call is the sanctioned\n\t* re-run and executes with full access. In-memory only: a server restart\n\t* resets the gate (a fresh session simply re-intercepts), and entries are\n\t* dropped when their session is disposed.\n\t*/\n\tselfCheckIntercepts = /* @__PURE__ */ new Map();\n\tconstructor(ctx, config) {"
+        "new": "\t/**\n\t* Per-session self-checking gate state: `sessionId` → the set of\n\t* command/operation keys already intercepted or failed once under\n\t* `self-checking` mode. A recorded key means the next identical call is the\n\t* sanctioned re-run and executes (or is retried) with full access.\n\t* In-memory only: a server restart resets the gate (a fresh session simply\n\t* re-intercepts), and entries are dropped when their session is disposed.\n\t*/\n\tselfCheckIntercepts = /* @__PURE__ */ new Map();\n\tconstructor(ctx, config) {"
       },
       {
         "old": "\t\tctx.inject([\"systemPrompt\"], (scope) => {",

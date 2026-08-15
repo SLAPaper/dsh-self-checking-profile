@@ -12,7 +12,7 @@
  	switch (policy.mode) {
  		case "read-only": return "Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.";
  		case "workspace-write": return `Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify(policy.workspaceRoot)}. Some platform temporary areas may also be writable.`;
-+		case "self-checking": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; the first operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and re-running the exact same command or operation executes it with full access only when that access is intentional — otherwise do not re-run.`;
++		case "self-checking": return `Current DSH file policy: self-checking. Operations run under workspace-write confinement by default; an operation denied for accessing a path outside the workspace (${JSON.stringify(policy.workspaceRoot)}) is intercepted with a notice, and a command that runs confined but fails (non-zero exit) may be failing on a sandbox permission issue — in both cases the notice demands a deliberate self-check: re-running the exact same command or operation with full access is sanctioned ONLY when that access is intentional — otherwise do not re-run.`;
  		case "danger-full-access": return "Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.";
  		/* v8 ignore next 4 -- SandboxMode is a typed same-process closed union; this branch is only the static exhaustiveness guard. */
  		default: {
@@ -29,12 +29,12 @@
  	/** The absolute `workspace-write` fallback root for calls without a session cwd. */
  	workspaceRoot;
 +	/**
-+	* Per-session self-checking intercept state: `sessionId` → the set of
-+	* command/operation keys already intercepted once under `self-checking`
-+	* mode. A recorded key means the next identical call is the sanctioned
-+	* re-run and executes with full access. In-memory only: a server restart
-+	* resets the gate (a fresh session simply re-intercepts), and entries are
-+	* dropped when their session is disposed.
++	* Per-session self-checking gate state: `sessionId` → the set of
++	* command/operation keys already intercepted or failed once under
++	* `self-checking` mode. A recorded key means the next identical call is the
++	* sanctioned re-run and executes (or is retried) with full access.
++	* In-memory only: a server restart resets the gate (a fresh session simply
++	* re-intercepts), and entries are dropped when their session is disposed.
 +	*/
 +	selfCheckIntercepts = /* @__PURE__ */ new Map();
  	constructor(ctx, config) {

@@ -2,7 +2,7 @@ import { isAbsolute, resolve } from "node:path";
 import z from "@deepseek-ai/schemastery";
 import { TOOL_ABORTED, defineTool } from "@deepseek-ai/dsh-tools";
 import { HarnessError } from "@deepseek-ai/dsh-llm";
-import { ESCALATION_TARGETS, approveEscalation, escalationHintMarker, sandboxDenialMarker, selfCheckNoticeMarker, validateEscalationArgs } from "@deepseek-ai/dsh-sandbox";
+import { ESCALATION_TARGETS, approveEscalation, escalationHintMarker, sandboxDenialMarker, selfCheckFailMarker, selfCheckNoticeMarker, validateEscalationArgs } from "@deepseek-ai/dsh-sandbox";
 import { parseExitStatus } from "@deepseek-ai/dsh-shell";
 //#region lib/types/background.js
 /**
@@ -68,6 +68,7 @@ function renderPwshResult(result, escalationModes = []) {
 	if (body.length === 0) body = "(no output)";
 	const markers = [];
 	if (result.sandbox?.intercepted) markers.push(selfCheckNoticeMarker("command"));
+	else if (result.sandbox?.failed) markers.push(selfCheckFailMarker("command"));
 	else if (result.sandbox?.denied) {
 		markers.push(sandboxDenialMarker(result.sandbox.mode));
 		if (escalationModes.length > 0) markers.push(escalationHintMarker("command"));
@@ -96,6 +97,7 @@ function renderPwshProcessRead(read, sandbox, escalationModes = []) {
 	}
 	if (sandbox?.runnerFailed) notices.push(`[sandbox: the sandbox runner itself failed under ${sandbox.mode} mode — the command did not run; this is a sandbox problem, not a command failure]`);
 	else if (sandbox?.intercepted) notices.push(selfCheckNoticeMarker("command"));
+	else if (sandbox?.failed) notices.push(selfCheckFailMarker("command"));
 	else if (sandbox?.denied) {
 		notices.push(sandboxDenialMarker(sandbox.mode));
 		if (escalationModes.length > 0) notices.push(escalationHintMarker("command"));
@@ -143,7 +145,7 @@ function validatePwshArgs(args) {
 function pwshDescription(backgroundEnabled, escalationModes) {
 	const base = "Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. Each call runs in a fresh pwsh process: no state (cwd, variables, functions) persists between calls — pass `workdir` instead of using `cd`. Paths use native Windows form (`C:\\...`); read environment variables with `$env:NAME`. Non-zero exits are reported as `[exit code: N]`. Current harness environment facts are exposed through managed `$env:DSH_*` variables; inspect them when needed. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]` — a policy denial, not a bug in the command; do not retry another way. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. On Windows a force-killed command settles as `[exit code: 1]` without a signal marker — treat it as an interruption, not a command failure. " + (backgroundEnabled ? "Set `run_in_background: true` for long-running commands: the call returns a job id immediately; read its output with `job_output` and stop it with `job_kill`." : "Background execution is not available; long-running commands must finish within the timeout.");
 	if (escalationModes.length === 0) return base;
-	return base + " Under self-checking mode, a command is probed under workspace-write first; a command denied for accessing a path outside the workspace is intercepted once with a `[sandbox: self-check intercepted ...]` notice — re-run the exact same command ONLY when that outside access is intentional; the re-run then executes with full access automatically (no approval needed), and a non-intentional re-run must not happen. Under the Windows sandbox, read-only pwsh runs in PowerShell ConstrainedLanguage mode, while workspace-write stays in FullLanguage unless host policy says otherwise. In read-only, prefer cmdlets and core types (`[string]`, `[datetime]`, `[regex]`, `[guid]`); .NET static calls (`[System.IO.*]::`, `[math]::`), `Add-Type`, COM objects, and reflection fail with \"only core types\" errors. `-f` formatting, property access, and core cmdlets work. In both confined modes, programs cannot open named pipes, so a command that captures another program's output through piped stdio (Node.js `child_process.spawn`/`exec` with the default `stdio: 'pipe'`) fails with EPERM, while `stdio: 'inherit'` and `stdio: 'ignore'` spawns work and PowerShell's own pipelines are unaffected. That EPERM is the documented boundary: do not retry the command another way — escalate the exact command once or restructure it to avoid capturing output. Attempting a command the sandbox may deny is safe and expected: run it and read the marker rather than assuming the denial. When a command is denied and a wider mode would let it succeed, escalate immediately in the same turn — the one sanctioned exception to a denial: retry the exact same command once with `sandbox_permissions` (the narrowest wider mode that suffices) plus a one-sentence `justification`. Do not detour through chat to ask permission first — the approval prompt raised by that retry is how the user consents. If the session states approval prompts are disabled, there is no exception: a denial is final — do not set `sandbox_permissions`. Never escalate speculatively: ground the request in a real denial — normally the one this command just hit; escalating up front is fine only when this session already denied the same access. A rejected escalation is final for that command — stop and explain, never work around it — but it does not forbid attempting or escalating other commands later.";
+	return base + " Under self-checking mode, a command is probed under workspace-write first; a command denied for accessing a path outside the workspace is intercepted once with a `[sandbox: self-check intercepted ...]` notice — re-run the exact same command ONLY when that outside access is intentional; the re-run then executes with full access automatically (no approval needed), and a non-intentional re-run must not happen. A command that runs confined but fails (non-zero exit) is met with a `[sandbox: self-check failed ...]` notice — the failure MAY be a sandbox permission issue (process-level restrictions the probe cannot classify); re-run the exact same command ONLY when the access is intentional — the re-run is retried with full access automatically, and a non-intentional re-run must not happen. Under the Windows sandbox, read-only pwsh runs in PowerShell ConstrainedLanguage mode, while workspace-write stays in FullLanguage unless host policy says otherwise. In read-only, prefer cmdlets and core types (`[string]`, `[datetime]`, `[regex]`, `[guid]`); .NET static calls (`[System.IO.*]::`, `[math]::`), `Add-Type`, COM objects, and reflection fail with \"only core types\" errors. `-f` formatting, property access, and core cmdlets work. In both confined modes, programs cannot open named pipes, so a command that captures another program's output through piped stdio (Node.js `child_process.spawn`/`exec` with the default `stdio: 'pipe'`) fails with EPERM, while `stdio: 'inherit'` and `stdio: 'ignore'` spawns work and PowerShell's own pipelines are unaffected. That EPERM is the documented boundary: do not retry the command another way — escalate the exact command once or restructure it to avoid capturing output. Attempting a command the sandbox may deny is safe and expected: run it and read the marker rather than assuming the denial. When a command is denied and a wider mode would let it succeed, escalate immediately in the same turn — the one sanctioned exception to a denial: retry the exact same command once with `sandbox_permissions` (the narrowest wider mode that suffices) plus a one-sentence `justification`. Do not detour through chat to ask permission first — the approval prompt raised by that retry is how the user consents. If the session states approval prompts are disabled, there is no exception: a denial is final — do not set `sandbox_permissions`. Never escalate speculatively: ground the request in a real denial — normally the one this command just hit; escalating up front is fine only when this session already denied the same access. A rejected escalation is final for that command — stop and explain, never work around it — but it does not forbid attempting or escalating other commands later.";
 }
 /**
 * Resolve an explicit workdir first, making a relative one session-workspace-relative;
@@ -176,7 +178,8 @@ function canonicalPwshResult(result) {
 			denied: result.sandbox.denied,
 			...result.sandbox.enforcement !== void 0 ? { enforcement: result.sandbox.enforcement } : {},
 			...result.sandbox.runnerFailed !== void 0 ? { runnerFailed: result.sandbox.runnerFailed } : {},
-			...result.sandbox.intercepted === true ? { intercepted: true } : {}
+			...result.sandbox.intercepted === true ? { intercepted: true } : {},
+			...result.sandbox.failed === true ? { failed: true } : {}
 		} } : {}
 	};
 }
@@ -351,7 +354,8 @@ function apply(ctx, config = {}) {
 							},
 							enforcement: { type: "string" },
 							runnerFailed: { type: "boolean" },
-							intercepted: { type: "boolean" }
+							intercepted: { type: "boolean" },
+							failed: { type: "boolean" }
 						}
 					}
 				}

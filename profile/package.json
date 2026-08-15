@@ -12,6 +12,7 @@
     "@deepseek-ai/dsh-terminal-bash": "file:./forks/dsh-terminal-bash",
     "@deepseek-ai/dsh-tool-bash": "file:./forks/dsh-tool-bash",
     "@deepseek-ai/dsh-tool-pwsh": "file:./forks/dsh-tool-pwsh",
+    "@deepseek-ai/dsh-tool-fs": "file:./forks/dsh-tool-fs",
     "@deepseek-ai/dsh-client-ui-conversation": "file:./forks/dsh-client-ui-conversation"
   },
   "dsh": {

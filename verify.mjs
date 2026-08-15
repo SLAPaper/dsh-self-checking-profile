@@ -4,9 +4,9 @@
 //   node verify.mjs --profile <profileDir> [--upstream <pristineDshAIDir>]
 //
 // Checks, exactly along the boot path:
-//   1. bare-name resolution from the profile directory: the eight modified
+//   1. bare-name resolution from the profile directory: the modified
 //      packages AND dsh-permission-presets must resolve to the profile's own
-//      node_modules (fork layer); non-forked packages (dsh-sandbox-local)
+//      node_modules (fork layer); non-forked packages (dsh-tool-fs-search)
 //      must still resolve to the pristine install.
 //   2. the forked SANDBOX_MODES includes "self-checking".
 //   3. the profile's cordis.patch.yml parses and the permission preset table
@@ -43,14 +43,14 @@ else console.log(`pristine install: ${upstream}`);
 
 // 1. resolution shadowing
 console.log("== 1. resolution ==");
-for (const pkg of ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-permission-presets", "dsh-client-ui-conversation"]) {
+for (const pkg of ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-permission-presets", "dsh-client-ui-conversation", "dsh-tool-fs"]) {
   const resolved = requireFromProfile.resolve(`@deepseek-ai/${pkg}`);
   assert(isUnder(resolved, forkNm), `${pkg} resolves into the fork layer`);
 }
 if (upstreamPresent) {
   // Packages no dependency declares can never enter the pnpm-managed profile
   // node_modules — they must resolve from the pristine install (fallback).
-  for (const pkg of ["dsh-tool-fs"]) {
+  for (const pkg of ["dsh-tool-fs-search"]) {
     const resolved = requireFromProfile.resolve(`@deepseek-ai/${pkg}`);
     assert(!isUnder(resolved, forkNm), `${pkg} resolves outside the fork layer (not shadowed)`);
   }

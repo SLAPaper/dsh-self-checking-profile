@@ -14,7 +14,7 @@
 之上新增 **Self Checking（自检）** 沙箱模式，附带完全可复现的 fork 层与发布
 工具链。
 
-- **Fork 层** —— `profile/forks/` 下 11 个 fork 的 `@deepseek-ai` 包，仅对本
+- **Fork 层** —— `profile/forks/` 下 12 个 fork 的 `@deepseek-ai` 包，仅对本
   profile 遮蔽同名的上游包；上游安装保持原样。
 - **补丁集** —— `patches/*.json`（机器可套用的锚定替换）与 `patches/*.diff`
   （供人工审阅），可从一份干净的 dsh 0.1.0-rc.6 安装逐字节重建 fork 层。
@@ -44,8 +44,22 @@ Self Checking 是"带工作区边界检查的完全访问"：
 
   该提示要求模型做出审慎的自我检查：只有当外部访问确属有意时，重试才是被
   认可的唯一延续方式。
-- 重试**完全相同的命令/操作**将以**完全访问**权限执行（无审批提示），并在本
-  会话剩余时间内持续有效。
+- 在限制下运行但**失败**（非零退出）的命令，会收到一条类似的防御性提示：
+
+  ```
+  [sandbox: self-check failed — this command failed; this may be a sandbox
+  permission issue; unless this access is intentional, do not re-run this
+  command — if it IS intentional, re-run the exact same command and it will be
+  retried with full access]
+  ```
+
+  失败*可能*来自探针无法分类的进程级沙箱限制（命名管道、TLS/凭据存储、
+  特权操作）——这正是拦截盲区的逃生口。
+- 重试**完全相同的命令/操作**将以**完全访问**权限执行（或重试）（无审批提示），
+  并在本会话剩余时间内持续有效。
+- 文件操作（write/edit）**没有自动重跑解锁**：self-checking 下普通的变更失败
+  会附带防御性提示，并引导走显式提权通道（`sandbox_permissions` +
+  `justification`）。
 
 它与其他权限预设一样可选——设置 → 权限（新会话默认）或输入框权限选择器 /
 `/permission self-checking`（当前会话）。
@@ -55,9 +69,9 @@ Self Checking 是"带工作区边界检查的完全访问"：
 ```
 ├── upstream/                  固化的基线快照（git 跟踪）
 │   ├── VERSION                基线版本（如 0.1.0-rc.6）
-│   └── @deepseek-ai/          11 个包的 npm 原始字节
+│   └── @deepseek-ai/          12 个包的 npm 原始字节
 ├── profile/                   可安装的 profile 模板
-│   ├── forks/                 11 个 fork 包（唯一事实来源）
+│   ├── forks/                 12 个 fork 包（唯一事实来源）
 │   ├── cordis.patch.yml       Self Checking 权限预设（含布局说明）
 │   ├── cordis.yml             profile 根（空条目列表）
 │   ├── package.json           打包产物 + fork 的 file: 依赖
@@ -213,20 +227,20 @@ node tools/build-release.mjs [version]
 - 无模型（agentless）调用在自检模式下会探针，但没有重试逃生口——保持拒绝
   （fail closed）。
 - 持久终端限制为 workspace-write（终端内没有重试流程）。
-- **拦截盲区：进程级限制不会被拦截。** 只有 workspace-write 探针因*文件 ACL
-  拒绝*且与后端 stderr 特征匹配而失败时，拦截才会触发。受限令牌的其他限制
-  不留此类特征，因此既不会被拦截，也不会被重试解锁：
-  - 命名管道（`ssh.exe`/`sh.exe` 报 "couldn't create signal pipe"、捕获子进程
-    的管道 stdio），
-  - TLS / 凭据存储（schannel `SEC_E_NO_CREDENTIALS`、Git Credential Manager
-    提示），
-  - 需要特权或 Write-DAC 的操作（例如 `SetNamedSecurityInfo`）。
-  当命令以这种方式失败时，模型应首先尝试能在探针下运行的替代方案（不同的
-  参数、不同的 TLS 后端、以其他方式提供凭据）；若确实需要完全访问，可以申请
-  提权——`sandbox_permissions: "danger-full-access"` + `justification`——Self
-  Checking 预设自带 `approval: ask`，因此提权提示会送达用户（若会话的审批策略
-  被单独切换为 `never`，请先切回）。作为用户，若看到智能体反复卡在同一个
-  非文件错误上，请提示它申请提权执行。
+- **进程级限制没有拦截，但现在有失败路径。** 一次性拦截只在 workspace-write
+  探针因*文件 ACL 拒绝*且与后端 stderr 特征匹配而失败时触发。受限令牌的进程
+  级限制不留此类特征——命名管道（`ssh.exe`/`sh.exe` 报 "couldn't create signal
+  pipe"、捕获子进程的管道 stdio）、TLS / 凭据存储（schannel
+  `SEC_E_NO_CREDENTIALS`、Git Credential Manager 提示）、需要特权或 Write-DAC
+  的操作（例如 `SetNamedSecurityInfo`）——因此永远不会被拦截。取而代之：命令
+  以非零退出失败，模型看到 `[sandbox: self-check failed ...]` 提示，被认可的
+  同命令重跑会以完全访问重试。注意事项：第一次运行已经在限制下执行过，重跑
+  可能重复部分副作用；非权限失败（bug、参数错误）重跑仍会失败——提示保持防
+  御性，模型不应为重跑而重跑。另一条路是显式提权——`sandbox_permissions:
+  "danger-full-access"` + `justification`——Self Checking 预设自带
+  `approval: ask`，因此提权提示会送达用户（若会话的审批策略被单独切换为
+  `never`，请先切回）。作为用户，若看到智能体反复卡在同一个非文件错误上，
+  请提示它申请提权执行。
 - 对通过复制组装 forks 的 profile，**不要**运行 `dsh plugin --profile <name>
   install`，除非你保持 `forks/` 同步（包管理器会按声明的 `file:` 依赖重建
   node_modules）。

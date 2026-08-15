@@ -31,16 +31,34 @@ All notable changes to this repository are documented here. The baseline
   `.gitattributes` pins LF for `*.d.ts`, `LICENSE`, and `upstream/**` so the
   byte-exact comparisons hold on every checkout.
 
+### Added
+
+- **Failure path for process-level restrictions** (the former interception
+  blind spot): under self-checking, a command that runs confined but fails
+  (non-zero exit) now records its key and is met with a defensive
+  `[sandbox: self-check failed ...]` notice — the failure may be a sandbox
+  permission issue the probe cannot classify. Re-running the exact same
+  command (only when intentional) retries it with full access, automatically.
+  Applied to the foreground and background pwsh/bash paths; the per-session
+  gate and the policy-context text were extended to cover both the
+  interception and the failure paths.
+- **Filesystem failure hint**: `dsh-tool-fs` is now the 12th forked package —
+  under self-checking, an ordinary (non-denial) write/edit failure gets the
+  defensive self-check notice appended and steers to the explicit escalation
+  channel (`sandbox_permissions` + `justification`); filesystem operations
+  have no automatic re-run unlock. `FS_SELFCHECK_INTERCEPTED` and
+  `FS_SANDBOX_DENIED` pass through unchanged; other modes are untouched.
+
 ### Docs
 
-- README documents the interception blind spot: process-level restrictions of
-  the restricted token (named pipes, TLS/credential stores, privilege/Write-DAC
-  operations) leave no denial signature, so they are neither intercepted nor
-  unlocked by a re-run. The recommended path is to try a probe-compatible
-  alternative first, and to request an escalation
-  (`sandbox_permissions: "danger-full-access"` + `justification`) when full
-  access is genuinely required; users are advised to prompt the agent to
-  escalate when it is stuck re-failing on the same non-file error.
+- The blind-spot section now documents the failure path: process-level
+  restrictions (named pipes, TLS/credential stores, privilege/Write-DAC
+  operations) leave no denial signature and are never intercepted, but a
+  failing exit now carries the `[sandbox: self-check failed ...]` notice and
+  the sanctioned re-run retries with full access — with the caveats that the
+  first run already executed under confinement (a re-run can repeat partial
+  side effects) and that a non-permission failure fails again.
+
 - README now credits the upstream project at the top: the profile is based on
   dsh / DeepSeek Harness, citing the source repository
   (<https://github.com/deepseek-ai/deepseek-harness>) and the npm package

@@ -26,7 +26,7 @@ const UPSTREAM_ROOT = join(ROOT, "upstream");
 const UPSTREAM_PKGS = join(UPSTREAM_ROOT, "@deepseek-ai");
 const VERSION_FILE = join(UPSTREAM_ROOT, "VERSION");
 
-const MODIFIED = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation"];
+const MODIFIED = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation", "dsh-tool-fs"];
 const PRISTINE_COPY = ["dsh-permission-presets"];
 const ALL = [...MODIFIED, ...PRISTINE_COPY];
 

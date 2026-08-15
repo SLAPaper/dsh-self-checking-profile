@@ -92,6 +92,23 @@ function selfCheckNoticeMarker(subject) {
 	return `[sandbox: self-check intercepted — this ${subject} attempted to access a path outside the workspace; unless this access is intentional, do not re-run this ${subject} — if it IS intentional, re-run the exact same ${subject} and it will be allowed with full access]`;
 }
 /**
+* The model-facing self-checking failure notice — the marker a
+* `self-checking` run reports when its confined execution FAILED (non-zero
+* exit) without having been denied: the failure MAY be a sandbox permission
+* issue the probe could not classify (process-level restrictions such as
+* named pipes, TLS/credential stores, or privilege operations leave no file
+* ACL signature). The notice demands the same deliberate self-check as the
+* interception: a re-run is the sanctioned continuation only when the access
+* is intentional, and re-running the EXACT same {@link subject} retries it
+* with full access, automatically.
+* @param subject - the family's noun for the failed action (`command` for
+*   bash/pwsh).
+* @returns the notice line, exactly as the model sees it.
+*/
+function selfCheckFailMarker(subject) {
+	return `[sandbox: self-check failed — this ${subject} failed; this may be a sandbox permission issue; unless this access is intentional, do not re-run this ${subject} — if it IS intentional, re-run the exact same ${subject} and it will be retried with full access]`;
+}
+/**
 * Resolve a sandbox-escalation request BEFORE anything executes: check strict
 * widening against the call's effective mode, then resolve the approval
 * channel, then map every outcome — the ordered fail-closed sequence both
@@ -214,4 +231,4 @@ var SandboxProvider = class extends Service {
 	}
 };
 //#endregion
-export { ESCALATION_TARGETS, SANDBOX_UNAVAILABLE, SandboxProvider, SandboxProvider as default, SandboxUnavailableError, WIDER_MODES, approveEscalation, canonicalPath, escalationHintMarker, sandboxDenialMarker, selfCheckNoticeMarker, validateEscalationArgs, writableRoots };
+export { ESCALATION_TARGETS, SANDBOX_UNAVAILABLE, SandboxProvider, SandboxProvider as default, SandboxUnavailableError, WIDER_MODES, approveEscalation, canonicalPath, escalationHintMarker, sandboxDenialMarker, selfCheckFailMarker, selfCheckNoticeMarker, validateEscalationArgs, writableRoots };

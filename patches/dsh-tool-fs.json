@@ -1,0 +1,20 @@
+{
+  "package": "dsh-tool-fs",
+  "builtAgainst": "0.1.0-rc.6",
+  "files": {
+    "lib/index.js": [
+      {
+        "old": "* The filesystem escalation API: advertisement gating, per-call policy",
+        "new": "* The defensive hint appended to an ordinary (non-denial) mutation failure\n* under `self-checking`: the failure MAY be a sandbox permission issue the\n* filesystem fence could not classify. It steers to the explicit escalation\n* channel — filesystem operations have no automatic re-run unlock — and\n* demands the same deliberate self-check as the command paths: do not retry\n* unless the access is intentional.\n*/\nconst SELF_CHECK_FAIL_HINT = \"\\n[sandbox: self-check notice — this operation failed; this may be a sandbox permission issue; unless this access is intentional, do not re-run this operation — if it IS intentional and permission-related, retry this exact operation with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]\";\n/**\n* The filesystem escalation API: advertisement gating, per-call policy"
+      },
+      {
+        "old": "\t* `Error` would strip the code retry/observers key off. Any other error\n\t* passes through unchanged. A `FS_SANDBOX_DENIED` only arises under a\n\t* confining backend, which always advertises the escalation fields, so the\n\t* hint always applies here.",
+        "new": "\t* `Error` would strip the code retry/observers key off. Under\n\t* `self-checking`, an ordinary (non-denial) `FsError` failure gets the\n\t* defensive self-check hint appended: the failure MAY be a sandbox\n\t* permission issue the fence could not classify, and the hint steers to\n\t* the explicit escalation channel (filesystem operations have no automatic\n\t* re-run unlock). An already-noticed `FS_SELFCHECK_INTERCEPTED` passes\n\t* through untouched, as does any non-`FsError`."
+      },
+      {
+        "old": "\t\tif (!(error instanceof FsError) || error.code !== \"FS_SANDBOX_DENIED\") return error;",
+        "new": "\t\tif (error instanceof FsError && error.code === \"FS_SELFCHECK_INTERCEPTED\") return error;\n\t\tif (!(error instanceof FsError) || error.code !== \"FS_SANDBOX_DENIED\") {\n\t\t\tif (policy?.mode === \"self-checking\" && error instanceof FsError) {\n\t\t\t\treturn new FsError(`${error.message}${SELF_CHECK_FAIL_HINT}`, error.code, { cause: error });\n\t\t\t}\n\t\t\treturn error;\n\t\t}"
+      }
+    ]
+  }
+}

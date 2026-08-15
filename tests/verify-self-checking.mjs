@@ -48,8 +48,12 @@ assert(sandbox.WIDER_MODES["workspace-write"].includes("self-checking"), "worksp
 assert(JSON.stringify(sandbox.WIDER_MODES["self-checking"]) === JSON.stringify(["danger-full-access"]), "self-checking escalates only to danger-full-access");
 assert(sandbox.ESCALATION_TARGETS.includes("self-checking"), "ESCALATION_TARGETS includes self-checking");
 assert(policyMod.SANDBOX_MODES.includes("self-checking"), "SANDBOX_MODES includes self-checking");
+assert(typeof sandbox.selfCheckFailMarker === "function", "selfCheckFailMarker exported");
+assert(sandbox.selfCheckFailMarker("command").includes("may be a sandbox permission issue"), "fail marker stays defensive");
+assert(sandbox.selfCheckFailMarker("command").includes("retried with full access"), "fail marker promises the full-access retry");
 console.log("  targets:", sandbox.ESCALATION_TARGETS.join(", "));
 console.log("  notice:", sandbox.selfCheckNoticeMarker("command"));
+console.log("  fail notice:", sandbox.selfCheckFailMarker("command"));
 
 console.log("== 2. per-session gate ==");
 let capturedContext;
@@ -78,7 +82,8 @@ const fakeSession = {
 const text = capturedContext.text({ agent: { session: fakeSession } });
 console.log("  ", text);
 assert(text.includes("Current DSH file policy: self-checking"), "context announces self-checking");
-assert(text.includes("re-running the exact same command or operation executes it with full access"), "context teaches the re-run continuation");
+assert(text.includes("may be failing on a sandbox permission issue"), "context teaches the fail path");
+assert(text.includes("sanctioned ONLY when that access is intentional"), "context teaches the re-run continuation");
 
 console.log("== 4. real fs fence ==");
 const base = mkdtempSync(join(process.env.DSH_SC_FENCE_DIR ?? homedir(), "dsh-sc-verify-"));
@@ -220,6 +225,37 @@ console.log("== 6. pwsh executor wiring (stubbed object) ==");
   const allowedProc = exec.startSelfChecking({ command: "bg-cmd" }, policy);
   assert(allowedProc === "proc", "allowed background command starts unconfined");
   assert(superStartCalls === 1, "unconfined start used the local executor");
+
+  // fail path: the probe PASSES (no denial signature) but the confined
+  // command exits non-zero -> the failure is recorded and stamped `failed`,
+  // so the identical re-run is retried unconfined with full access
+  exec.runArgv = async (_spec, argv) => ({
+    exitCode: 2,
+    stdout: { text: "", truncated: false },
+    stderr: { text: "schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS", truncated: false },
+    timedOut: false, signal: null, timeoutMs: 0, argv
+  });
+  const failRun = await exec.runSelfChecking({ command: "git push origin main" }, { mode: "self-checking", workspaceRoot: "C:\\work", sessionId: "s4" });
+  assert(failRun.sandbox.failed === true, "confined failure stamped failed");
+  assert(failRun.sandbox.denied === false, "confined failure is not a denial");
+  assert(recorded.includes("s4|git push origin main"), "failure recorded on session");
+  const failRetry = await exec.runSelfChecking({ command: "git push origin main" }, { mode: "self-checking", workspaceRoot: "C:\\work", sessionId: "s4" });
+  assert(failRetry.sandbox.failed === void 0, "retry not marked failed");
+  assert(unconfinedRuns === 2, "retry executed unconfined (full access)");
+
+  // background fail path: a non-denied failing exit stamps `failed` and records
+  const failProc = exec.startSelfChecking({ command: "bg-fail" }, { mode: "self-checking", workspaceRoot: "C:\\work", sessionId: "s5" });
+  exec.onProcessDone(failProc, "SEC_E_NO_CREDENTIALS (0x8009030e)", false, void 0);
+  assert(failProc.sandbox.failed === true, "background failure stamped failed");
+  assert(recorded.includes("s5|bg-fail"), "background failure recorded");
+}
+
+console.log("== 7. fs failure hint (dsh-tool-fs fork) ==");
+{
+  const toolFsSrc = readFileSync(join(FORK_ROOT, "dsh-tool-fs", "lib", "index.js"), "utf8");
+  assert(toolFsSrc.includes("[sandbox: self-check notice — this operation failed"), "dsh-tool-fs fork carries the fs fail hint");
+  assert(toolFsSrc.includes('policy?.mode === "self-checking"'), "fs fail hint applies only under self-checking");
+  assert(toolFsSrc.includes('error.code === "FS_SELFCHECK_INTERCEPTED"'), "fs deny notice passes through untouched");
 }
 
 if (failures > 0) {

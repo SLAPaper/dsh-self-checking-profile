@@ -50,7 +50,7 @@ const FORKS_ROOT = join(ROOT, "profile", "forks");
 // deny)
 const GIT_TMP = join(ROOT, ".git", "dsh-merge-tmp");
 
-const MODIFIED = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation"];
+const MODIFIED = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation", "dsh-tool-fs"];
 const PRISTINE_COPY = ["dsh-permission-presets"];
 const ALL = [...MODIFIED, ...PRISTINE_COPY];
 

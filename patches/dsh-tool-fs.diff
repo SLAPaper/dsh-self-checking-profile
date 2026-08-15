@@ -1,0 +1,49 @@
+--- a/dsh-tool-fs/lib/index.js
++++ b/dsh-tool-fs/lib/index.js
+@@ -1076,6 +1076,15 @@
+ * @module @deepseek-ai/dsh-tool-fs/sandbox
+ */
+ /**
++* The defensive hint appended to an ordinary (non-denial) mutation failure
++* under `self-checking`: the failure MAY be a sandbox permission issue the
++* filesystem fence could not classify. It steers to the explicit escalation
++* channel — filesystem operations have no automatic re-run unlock — and
++* demands the same deliberate self-check as the command paths: do not retry
++* unless the access is intentional.
++*/
++const SELF_CHECK_FAIL_HINT = "\n[sandbox: self-check notice — this operation failed; this may be a sandbox permission issue; unless this access is intentional, do not re-run this operation — if it IS intentional and permission-related, retry this exact operation with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]";
++/**
+ * The filesystem escalation API: advertisement gating, per-call policy
+ * resolution, the one-approved wider retry, and denial-marker mapping. A pure
+ * product of `ctx` at plugin apply time.
+@@ -1154,16 +1163,25 @@
+ 	* same-turn escalation hint, so a policy denial reads identically to bash's
+ 	* WHILE keeping the structured `FS_SANDBOX_DENIED` code — `ToolRuntime`
+ 	* populates `result.error` only for `HarnessError` instances, so a plain
+-	* `Error` would strip the code retry/observers key off. Any other error
+-	* passes through unchanged. A `FS_SANDBOX_DENIED` only arises under a
+-	* confining backend, which always advertises the escalation fields, so the
+-	* hint always applies here.
++	* `Error` would strip the code retry/observers key off. Under
++	* `self-checking`, an ordinary (non-denial) `FsError` failure gets the
++	* defensive self-check hint appended: the failure MAY be a sandbox
++	* permission issue the fence could not classify, and the hint steers to
++	* the explicit escalation channel (filesystem operations have no automatic
++	* re-run unlock). An already-noticed `FS_SELFCHECK_INTERCEPTED` passes
++	* through untouched, as does any non-`FsError`.
+ 	* @param error - the error thrown by the mutation.
+ 	* @param policy - the policy stamped onto the call (names the mode in the marker).
+ 	* @returns the error to throw — the marker `FsError` for a sandbox denial, else the original.
+ 	*/
+ 	mapError(error, policy) {
+-		if (!(error instanceof FsError) || error.code !== "FS_SANDBOX_DENIED") return error;
++		if (error instanceof FsError && error.code === "FS_SELFCHECK_INTERCEPTED") return error;
++		if (!(error instanceof FsError) || error.code !== "FS_SANDBOX_DENIED") {
++			if (policy?.mode === "self-checking" && error instanceof FsError) {
++				return new FsError(`${error.message}${SELF_CHECK_FAIL_HINT}`, error.code, { cause: error });
++			}
++			return error;
++		}
+ 		const mode = policy.mode;
+ 		return new FsError(`${sandboxDenialMarker(mode)}\n${escalationHintMarker("operation")}`, "FS_SANDBOX_DENIED", { cause: error });
+ 	}

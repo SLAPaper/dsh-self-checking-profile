@@ -14,7 +14,7 @@ A drop-in dsh web profile that adds the **Self Checking** sandbox mode on top
 of `workspace-write` and `danger-full-access`, as a fully reproducible fork
 layer plus release tooling.
 
-- **Fork layer** — 11 forked `@deepseek-ai` packages under `profile/forks/`
+- **Fork layer** — 12 forked `@deepseek-ai` packages under `profile/forks/`
   that shadow the identical upstream packages for the profile only; upstream
   installs stay pristine.
 - **Patch set** — `patches/*.json` (machine-applied anchored replacements) and
@@ -48,8 +48,25 @@ Self Checking is "full access with a workspace boundary check":
 
   The notice demands a deliberate self-check: a re-run is the sanctioned
   continuation only when the outside access is intentional.
-- Re-running the **exact same command/operation** executes it with **full
-  access** (no approval prompt), for the rest of the session.
+- A command that runs confined but **fails** (non-zero exit) is met with a
+  similar defensive notice:
+
+  ```
+  [sandbox: self-check failed — this command failed; this may be a sandbox
+  permission issue; unless this access is intentional, do not re-run this
+  command — if it IS intentional, re-run the exact same command and it will be
+  retried with full access]
+  ```
+
+  The failure *may* be a process-level sandbox restriction (named pipes,
+  TLS/credential stores, privilege operations) that leaves no file ACL
+  signature — this is the escape hatch for the interception blind spot.
+- Re-running the **exact same command/operation** executes (or retries) it
+  with **full access** (no approval prompt), for the rest of the session.
+- Filesystem operations (write/edit) have **no automatic re-run unlock**: an
+  ordinary mutation failure under self-checking gets the defensive notice
+  appended and steers to the explicit escalation channel
+  (`sandbox_permissions` + `justification`).
 
 It is selectable like any other permission preset — Settings → Permission
 (default for new sessions) or the composer permission picker / `/permission
@@ -60,9 +77,9 @@ self-checking` (current session).
 ```
 ├── upstream/                  vendored baseline snapshot (git-tracked)
 │   ├── VERSION                baseline version (e.g. 0.1.0-rc.6)
-│   └── @deepseek-ai/          exact npm package bytes of the 11 packages
+│   └── @deepseek-ai/          exact npm package bytes of the 12 packages
 ├── profile/                  the installable profile template
-│   ├── forks/                the 11 forked packages (source of truth)
+│   ├── forks/                the 12 forked packages (source of truth)
 │   ├── cordis.patch.yml      Self Checking permission preset (+ layout notes)
 │   ├── cordis.yml            profile root (empty entry list)
 │   ├── package.json          bundles + fork `file:` dependencies
@@ -230,25 +247,26 @@ node tools/build-release.mjs [version]
   escape hatch — they stay denied (fail closed).
 - Persistent terminals confine as workspace-write (no re-run flow inside a
   terminal).
-- **Interception blind spot: process-level restrictions are not intercepted.**
-  The interception fires only when the workspace-write probe fails with a
-  *file ACL denial* that matches the backend's stderr signatures. Other
-  restrictions of the restricted token leave no such signature, so they are
-  neither intercepted nor unlocked by a re-run:
-  - named pipes (`ssh.exe`/`sh.exe` "couldn't create signal pipe", capturing
-    a child process's piped stdio),
-  - TLS / credential stores (schannel `SEC_E_NO_CREDENTIALS`, Git Credential
-    Manager prompts),
-  - operations needing privileges or Write-DAC (e.g. `SetNamedSecurityInfo`).
-  When a command fails this way, the model should first try an alternative
-  that runs under the probe (different flags, a different TLS backend,
-  credentials supplied another way); if full access is genuinely required,
-  it may request an escalation with `sandbox_permissions:
-  "danger-full-access"` + `justification` — the Self Checking preset ships
-  with `approval: ask`, so the escalation prompt reaches the user (if the
-  session's approval policy was switched to `never` separately, switch it
-  back first). As a user, if you see the agent stuck re-failing on the same
-  non-file error, prompt it to request the escalation.
+- **Process-level restrictions have no interception, but now have a fail path.**
+  The one-time interception fires only when the workspace-write probe fails
+  with a *file ACL denial* that matches the backend's stderr signatures.
+  Process-level restrictions of the restricted token leave no such signature
+  — named pipes (`ssh.exe`/`sh.exe` "couldn't create signal pipe", capturing a
+  child process's piped stdio), TLS / credential stores (schannel
+  `SEC_E_NO_CREDENTIALS`, Git Credential Manager prompts), and operations
+  needing privileges or Write-DAC (e.g. `SetNamedSecurityInfo`) — so they are
+  never intercepted. Instead, the command exits non-zero, the model sees the
+  `[sandbox: self-check failed ...]` notice, and the sanctioned re-run of the
+  exact same command retries it with full access. Caveats: the first run
+  already executed under confinement, so a re-run can repeat partial side
+  effects; and a non-permission failure (a bug, a bad flag) fails again — the
+  notice stays defensive, and the model should not re-run for its own sake.
+  As an alternative, the model may request an explicit escalation with
+  `sandbox_permissions: "danger-full-access"` + `justification` — the Self
+  Checking preset ships with `approval: ask`, so the escalation prompt
+  reaches the user (if the session's approval policy was switched to `never`
+  separately, switch it back first). As a user, if you see the agent stuck
+  re-failing on the same non-file error, prompt it to request the escalation.
 - Do **not** run `dsh plugin --profile <name> install` in a profile whose
   forks were assembled by copy unless you keep `forks/` in sync (the package
   manager rebuilds node_modules from the declared `file:` deps).

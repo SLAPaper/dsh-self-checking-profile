@@ -12,7 +12,7 @@ const UPSTREAM = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url))
 const FORK = process.argv[3] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "profile", "forks");
 const OUT = process.argv[4] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "patches");
 
-const PACKAGES = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation"];
+const PACKAGES = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation", "dsh-tool-fs"];
 
 /** LCS-path line diff; returns ops: {t:'eq'|'del'|'ins', l} in file order. */
 function diffOps(original, patched) {

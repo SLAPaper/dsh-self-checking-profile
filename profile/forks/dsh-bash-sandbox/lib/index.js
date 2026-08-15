@@ -176,9 +176,14 @@ var SandboxBashExecutor = class extends LocalBashExecutor {
 	* command first probes under `workspace-write`. A probe denied for touching
 	* paths outside the workspace is the one-time INTERCEPTION: the key is
 	* recorded on the calling session and the result carries `intercepted` so
-	* the tool layer renders the re-run notice instead of a plain denial. An
-	* agentless call has no session to record on: its probe stays a plain
-	* denial with no escape hatch.
+	* the tool layer renders the re-run notice instead of a plain denial. A
+	* probe that PASSES has executed the command confined; a failing exit
+	* (non-zero) may be a sandbox permission issue the probe cannot classify
+	* (process-level restrictions leave no file ACL signature), so the key is
+	* recorded and the result carries `failed` — the exact same command's
+	* re-run is then retried with full access. An agentless call has no
+	* session to record on: its probe stays a plain denial and its failures
+	* carry no escape hatch.
 	* @param spec - the resolved execution spec.
 	* @param policy - the self-checking policy stamped onto the call.
 	* @returns the settled result with `sandbox.mode: "self-checking"`.
@@ -191,15 +196,28 @@ var SandboxBashExecutor = class extends LocalBashExecutor {
 				...policy,
 				mode: "workspace-write"
 			});
-			const intercepted = probe.denied && sessionId !== void 0;
-			if (intercepted) this.ctx.sandboxPolicy.selfCheckRecord(sessionId, key);
+			if (probe.denied) {
+				const intercepted = sessionId !== void 0;
+				if (intercepted) this.ctx.sandboxPolicy.selfCheckRecord(sessionId, key);
+				return {
+					...probe.result,
+					sandbox: {
+						mode: "self-checking",
+						denied: true,
+						...probe.result.sandbox.enforcement !== void 0 ? { enforcement: probe.result.sandbox.enforcement } : {},
+						...intercepted ? { intercepted: true } : {}
+					}
+				};
+			}
+			const failed = probe.result.exitCode !== 0;
+			if (failed && sessionId !== void 0) this.ctx.sandboxPolicy.selfCheckRecord(sessionId, key);
 			return {
 				...probe.result,
 				sandbox: {
 					mode: "self-checking",
-					denied: probe.denied,
+					denied: false,
 					...probe.result.sandbox.enforcement !== void 0 ? { enforcement: probe.result.sandbox.enforcement } : {},
-					...intercepted ? { intercepted: true } : {}
+					...failed ? { failed: true } : {}
 				}
 			};
 		}
@@ -343,7 +361,8 @@ var SandboxBashExecutor = class extends LocalBashExecutor {
 	* Stamp per-process sandbox facts before `done` settles. Full-access
 	* processes have no facts; signal deaths are not denials. A denied
 	* self-checking probe records the interception on its session (idempotent)
-	* and stamps `intercepted` so the tool renders the re-run notice.
+	* and stamps `intercepted`; a non-denied failing exit records the key and
+	* stamps `failed` so the tool renders the corresponding notice.
 	*/
 	onProcessDone(proc, stderr, spawnFailed, spawnError) {
 		const facts = this.processFacts.get(proc);
@@ -352,16 +371,23 @@ var SandboxBashExecutor = class extends LocalBashExecutor {
 			const runnerFailed = spawnFailed ? isRunnerSpawnFailure(spawnError, facts.runnerProgram, facts.workdir) : classifyRunnerFailure(proc.exitCode, stderr, facts.runnerFailureRules) !== void 0;
 			const denied = !runnerFailed && (facts.selfCheckKey !== void 0 ? matchesDenialStderr(stderr, facts.denialSignatures) : matchesSignature(proc.exitCode, stderr, facts.denialSignatures));
 			let intercepted = false;
-			if (denied && facts.selfCheckKey !== void 0 && facts.sessionId !== void 0) {
-				this.ctx.sandboxPolicy.selfCheckRecord(facts.sessionId, facts.selfCheckKey);
-				intercepted = true;
+			let failed = false;
+			if (facts.selfCheckKey !== void 0 && facts.sessionId !== void 0) {
+				if (denied) {
+					this.ctx.sandboxPolicy.selfCheckRecord(facts.sessionId, facts.selfCheckKey);
+					intercepted = true;
+				} else if (!runnerFailed && proc.exitCode !== 0) {
+					this.ctx.sandboxPolicy.selfCheckRecord(facts.sessionId, facts.selfCheckKey);
+					failed = true;
+				}
 			}
 			proc.sandbox = {
 				mode: facts.mode,
 				denied,
 				enforcement: facts.enforcement,
 				...runnerFailed ? { runnerFailed } : {},
-				...intercepted ? { intercepted: true } : {}
+				...intercepted ? { intercepted: true } : {},
+				...failed ? { failed: true } : {}
 			};
 		}
 		super.onProcessDone(proc, stderr, spawnFailed, spawnError);
