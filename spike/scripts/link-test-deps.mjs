@@ -25,6 +25,7 @@ const packages = [
   'dsh-shell',
   'dsh-shell-env',
   'dsh-subprocess-local',
+  'dsh-tool-fs',
   'dsh-tool-pwsh',
   'dsh-tools'
 ]

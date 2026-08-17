@@ -34,7 +34,7 @@ upstream service providers and disabling their native rows through
 
 ```bash
 cd spike
-npm test          # gate, fs fence, stubbed executor surface, Cordis registration
+npm test          # gate, fs fence + native write tool, executor surface, registration
 npm run test:live # real pwsh + windows-acl runner and native tool layer
 ```
 
@@ -48,10 +48,10 @@ npm run test:live # real pwsh + windows-acl runner and native tool layer
   foreground and background processes — inside write passes, outside write is
   intercepted once and does not happen, the exact re-run writes with full
   access; normal workspace-write and danger-full-access presets are untouched;
-- **native tool layer** on Windows: the real `dsh-tool-pwsh` plugin is loaded
-  over the spike shell and its `execute -> canonical value -> output.render`
-  path shows the notice in the model-facing text with no generic denial
-  marker;
+- **native tool layer**: the real `dsh-tool-fs` `write` tool throws and passes
+  the `FS_SELFCHECK_INTERCEPTED` marker through, and the real `dsh-tool-pwsh`
+  plugin (Windows) shows the notice in model-facing text with no generic
+  denial marker;
 - Cordis registration: the package plugin mounts both replacement services.
 
 Also validated against a real dsh `0.1.0-rc.6` profile:
