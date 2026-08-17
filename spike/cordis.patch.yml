@@ -30,7 +30,7 @@
       self-checking:
         sandbox: workspace-write
         approval: ask
-        name: Self Checking
+        name: 🛡️ Self Checking
         description: "Full access with a workspace boundary check: commands run under workspace-write first; an intercepted outside-workspace access is allowed — only when the access is intentional — by re-running the same command, which executes with full access."
       danger-full-access:
         sandbox: danger-full-access
