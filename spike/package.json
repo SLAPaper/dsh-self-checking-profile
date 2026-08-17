@@ -27,12 +27,14 @@
     "test": "node tests/self-checking-spike.test.mjs && node tests/cordis-registration.test.mjs && node tests/fs-tool-layer.test.mjs",
     "test:live": "node tests/live-runner.test.mjs && node tests/tool-layer.test.mjs",
     "test:all": "npm test && npm run test:live",
-    "install:dev-profile": "node scripts/install-dev-profile.mjs"
+    "install:dev-profile": "node scripts/install-dev-profile.mjs",
+    "verify:installed": "node scripts/verify-installed.mjs --profile self-checking-spike"
   },
   "files": [
     "lib/",
     "cordis.patch.yml",
     "package.json",
-    "README.md"
+    "README.md",
+    "scripts/verify-installed.mjs"
   ]
 }

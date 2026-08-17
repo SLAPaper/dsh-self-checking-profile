@@ -131,6 +131,39 @@ try {
   await bgRetry.done
   check(existsSync(bgFile) && readFileSync(bgFile, 'utf8').trim() === 'outside-ok', 'background exact re-run writes with full access')
 
+  // Same-session preset switch: workspace-write turns the spike gate off and
+  // restores the native plain denial; danger-full-access runs untouched.
+  const sameSession = sessionMap.get(SESSION)
+  sameSession.events.push(
+    { type: 'permission/preset', data: { preset: 'workspace-write' } },
+    { type: 'sandbox/mode', data: { mode: 'workspace-write' } }
+  )
+  const sameWwFile = join(outside, 'same-ww.txt')
+  const sameWwSpec = shell.resolve({
+    command: `Set-Content -LiteralPath '${sameWwFile}' -Value ww`,
+    workdir: workspace,
+    timeoutMs: 30000,
+    sandboxPolicy: { mode: 'workspace-write', workspaceRoot: workspace, sessionId: SESSION }
+  })
+  const sameWw = await shell.run(sameWwSpec)
+  check(sameWw.sandbox?.denied === true && sameWw.sandbox?.intercepted === undefined, 'same session switched to workspace-write keeps plain denial')
+  check(!existsSync(sameWwFile), 'same-session workspace-write switch did not write outside')
+
+  sameSession.events.push(
+    { type: 'permission/preset', data: { preset: 'danger-full-access' } },
+    { type: 'sandbox/mode', data: { mode: 'danger-full-access' } }
+  )
+  const sameFullFile = join(outside, 'same-full.txt')
+  const sameFullSpec = shell.resolve({
+    command: `Set-Content -LiteralPath '${sameFullFile}' -Value full`,
+    workdir: workspace,
+    timeoutMs: 30000,
+    sandboxPolicy: { mode: 'danger-full-access', workspaceRoot: workspace, sessionId: SESSION }
+  })
+  const sameFull = await shell.run(sameFullSpec)
+  check(sameFull.exitCode === 0, 'same session switched to full access succeeds')
+  check(existsSync(sameFullFile) && readFileSync(sameFullFile, 'utf8').trim() === 'full', 'same-session full-access switch wrote outside')
+
   // Preset isolation: a normal workspace-write session keeps the native
   // plain-denial path; a danger-full-access session is untouched by the gate.
   const wwFile = join(outside, 'ww.txt')

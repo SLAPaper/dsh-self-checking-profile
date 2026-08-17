@@ -34,8 +34,8 @@ upstream service providers and disabling their native rows through
 
 ```bash
 cd spike
-npm test          # gate, fs fence + native write tool, executor surface, registration
-npm run test:live # real pwsh + windows-acl runner and native tool layer
+npm test          # gate, fs fence + native write/edit tools, registration
+npm run test:live # real pwsh + windows-acl runner and native pwsh tool layer
 ```
 
 - runtime gate and session disposal;
@@ -48,10 +48,15 @@ npm run test:live # real pwsh + windows-acl runner and native tool layer
   foreground and background processes — inside write passes, outside write is
   intercepted once and does not happen, the exact re-run writes with full
   access; normal workspace-write and danger-full-access presets are untouched;
-- **native tool layer**: the real `dsh-tool-fs` `write` tool throws and passes
-  the `FS_SELFCHECK_INTERCEPTED` marker through, and the real `dsh-tool-pwsh`
-  plugin (Windows) shows the notice in model-facing text with no generic
-  denial marker;
+- **native tool layer**: the real `dsh-tool-fs` `write`/`edit` tools throw and
+  pass the `FS_SELFCHECK_INTERCEPTED` marker through, an ordinary `edit`
+  failure keeps its structured code plus the self-check hint, and the real
+  `dsh-tool-pwsh` plugin (Windows) shows the notice in model-facing text with
+  no generic denial marker; both native tool layers keep the explicit
+  `sandbox_permissions=danger-full-access` + approval channel working;
+- **same-session preset switching**: appending workspace-write or
+  danger-full-access permission events to the same session immediately turns
+  the spike gate off and restores native behavior;
 - Cordis registration: the package plugin mounts both replacement services.
 
 Also validated against a real dsh `0.1.0-rc.6` profile:
@@ -71,6 +76,12 @@ dsh --profile spike --port 0
 `dsh plugin add` appends the bundle to `dsh.profile.bundles`; both boot paths
 activate cleanly. `--dump-default-config` shows the three native service rows
 disabled and the permission preset inserted.
+
+An installed profile can be checked with:
+
+```bash
+node <profile>/node_modules/dsh-self-checking-spike/scripts/verify-installed.mjs   --profile <profile> --dsh-home "$DSH_HOME" --strict
+```
 
 ## Known limitations / accepted differences
 

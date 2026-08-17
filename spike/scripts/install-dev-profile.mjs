@@ -32,10 +32,11 @@ if (existsSync(destProfile)) {
   if (!force) throw new Error(`${destProfile} already exists (use --force)`)
   rmSync(destProfile, { recursive: true, force: true })
 }
-mkdirSync(destPkg, { recursive: true })
+mkdirSync(join(destPkg, 'scripts'), { recursive: true })
 for (const entry of ['lib', 'cordis.patch.yml', 'package.json', 'README.md']) {
   cpSync(join(root, entry), join(destPkg, entry), { recursive: true })
 }
+cpSync(join(root, 'scripts', 'verify-installed.mjs'), join(destPkg, 'scripts', 'verify-installed.mjs'))
 writeFileSync(join(destProfile, 'package.json'), JSON.stringify({
   name: `dsh-profile-${profile}`,
   private: true,
@@ -56,4 +57,5 @@ if (!existsSync(fallback)) {
   console.error('run any dsh 0.1.0-rc.6 profile once before starting this one')
 }
 console.log(`installed ${pkgName} into ${destProfile}`)
+console.log(`verify: node ${join(destPkg, 'scripts', 'verify-installed.mjs')} --profile ${basename(profile)} --dsh-home ${dshHome}`)
 console.log(`start: npx @deepseek-ai/dsh --profile ${basename(profile)}`)
