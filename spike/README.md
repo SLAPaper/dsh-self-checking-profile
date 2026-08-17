@@ -82,10 +82,11 @@ disabled and the permission preset inserted.
    and background runs are covered by `test:live`. Real bash (Linux/macOS),
    Linux bwrap/Landlock, and macOS Seatbelt runs are not covered in this
    environment yet.
-3. **No custom SVG permission-picker icon.** The preset name embeds the
-   `🛡️` emoji instead, which the picker renders because non-kebab host names
-   pass through `displayName` unchanged. This is decorative and accepted for
-   the spike.
+3. **No custom SVG permission-picker icon.** The preset name embeds
+   `🛡️🔍` emojis instead (shield + magnifier, matching the fork glyph's
+   intent), which the picker renders because non-kebab host names pass
+   through `displayName` unchanged. This is decorative and accepted for the
+   spike.
 4. **Depends on upstream class internals** (`processFacts`, `startArgv`,
    `checkedTarget`), so upgrades to a new dsh baseline still need an
    adaptation pass, although no module shadowing is involved.
