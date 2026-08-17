@@ -72,21 +72,23 @@ dsh --profile spike --port 0
 activate cleanly. `--dump-default-config` shows the three native service rows
 disabled and the permission preset inserted.
 
-## Current limitations
+## Known limitations / accepted differences
 
 1. **The native tool renderer is untouched.** The notice is embedded in
-   `stdout` before the native exit-code marker; the real `dsh-tool-pwsh`
-   integration test confirms the model-facing text reads naturally, but it is
-   not automatically byte-diffed against the fork layer's rendered output.
+   `stdout` before the native exit-code marker. Byte-identical output with
+   the fork layer is explicitly NOT a goal: acceptance is that the model sees
+   the same defensive guidance in real tool results. The real
+   `dsh-tool-pwsh` integration test covers exactly that path.
 2. **Live kernel-sandbox coverage is Windows-only.** Real pwsh foreground
-   and background runs are covered by `test:live`. Real bash (Linux/macOS),
-   Linux bwrap/Landlock, and macOS Seatbelt runs are not covered in this
-   environment yet.
+   and background runs are covered by `test:live`. Linux bwrap/Landlock and
+   macOS Seatbelt live runs are not covered because this spike has no
+   Linux/macOS environment; the bash subclass currently has surface/stub
+   coverage only. This is an accepted environmental limitation, not a
+   planned follow-up here.
 3. **No custom SVG permission-picker icon.** The preset name embeds
    `🛡️🔍` emojis instead (shield + magnifier, matching the fork glyph's
    intent), which the picker renders because non-kebab host names pass
-   through `displayName` unchanged. This is decorative and accepted for the
-   spike.
+   through `displayName` unchanged. Accepted as a decorative difference.
 4. **Depends on upstream class internals** (`processFacts`, `startArgv`,
    `checkedTarget`), so upgrades to a new dsh baseline still need an
    adaptation pass, although no module shadowing is involved.
@@ -104,6 +106,7 @@ disabled and the permission preset inserted.
   `@deepseek-ai/dsh-*` peer ranges).
 - Replace `profile/` + `built-fork` with `dsh plugin --profile <name> add
   dsh-self-checking` installation.
-- Port the full `tests/verify-self-checking.mjs` semantic suite, adding live
-  runner cases for bash/pwsh/Windows ACL.
-- Decide whether to keep the client-ui icon fork or accept the missing glyph.
+- Map the existing `tests/verify-self-checking.mjs` assertions onto the spike
+  suite; pwsh live runner coverage already exists, bash live coverage is
+  accepted as unavailable in this environment.
+- Keep the emoji-based picker decoration; no client-ui fork is needed.
