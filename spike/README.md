@@ -53,17 +53,20 @@ npm run test:live # real pwsh + windows-acl runner (Windows only)
 Also validated against a real dsh `0.1.0-rc.6` profile:
 
 ```bash
-# create a local end-to-end profile (mimics the future
-# `dsh plugin --profile <name> add dsh-self-checking`):
+# The intended one-package install path, against a scratch DSH_HOME:
+dsh plugin --profile web add file:/path/to/dsh-self-checking/spike
+dsh --profile web --port 0
+
+# Without pnpm, a dev-profile copier is available:
 npm run install:dev-profile -- --dsh-home "$DSH_HOME" --profile spike
 
 dsh --profile spike --dump-default-config
 dsh --profile spike --port 0
 ```
 
-`--dump-default-config` shows the three native service rows disabled and the
-permission preset inserted; `--port 0` boots the web profile cleanly with no
-unactivated entries.
+`dsh plugin add` appends the bundle to `dsh.profile.bundles`; both boot paths
+activate cleanly. `--dump-default-config` shows the three native service rows
+disabled and the permission preset inserted.
 
 ## Current limitations
 
