@@ -39,6 +39,7 @@ const session = {
   header: { cwd: workspace }
 }
 let registeredTool
+let approvalRequests = []
 const root = new Context()
 const stub = (name, value) => ({ name, apply(ctx) { ctx.provide(name, value) } })
 
@@ -48,6 +49,7 @@ await root.plugin(SandboxPolicyService, { mode: 'workspace-write', workspaceRoot
 await root.plugin(stub('sessions', { get: (id) => id === SESSION ? session : undefined, list: () => [] }))
 await root.plugin(stub('systemPrompt', { section: () => {}, context: () => {} }))
 await root.plugin(stub('shellEnv', { collect: () => ({}) }))
+await root.plugin(stub('approval', { request: async (request) => { approvalRequests.push(request); return 'allowed-once' } }))
 await root.plugin(stub('tools', { register: (definition) => { registeredTool = definition } }))
 await root.plugin(selfCheckingPlugin)
 await root.plugin(toolPwsh)
@@ -84,6 +86,21 @@ try {
   check(existsSync(outsideFile) && readFileSync(outsideFile, 'utf8').trim() === 'tool-ok', 're-run wrote outside through the native tool')
   const secondText = registeredTool.output.render(args, secondValue)[0].text
   check(!secondText.includes(selfCheckNoticeMarker('command')), 'successful re-run has no notice')
+
+  // Explicit escalation still works: standing mode is workspace-write, so
+  // sandbox_permissions=danger-full-access routes through ctx.approval and
+  // executes full access (the same channel as the fork version).
+  const approvedFile = join(outside, 'tool-approved.txt')
+  const approvedArgs = {
+    command: `Set-Content -LiteralPath '${approvedFile}' -Value approved`,
+    description: 'Write outside workspace with explicit escalation',
+    sandbox_permissions: 'danger-full-access',
+    justification: 'the user asked for this outside-workspace file'
+  }
+  const approvedValue = await registeredTool.execute(approvedArgs, exec)
+  check(approvedValue.exitCode === 0, 'explicit escalation executes with full access')
+  check(existsSync(approvedFile) && readFileSync(approvedFile, 'utf8').trim() === 'approved', 'explicit escalation wrote outside')
+  check(approvalRequests.length === 1 && approvalRequests[0].toolName === 'pwsh', 'escalation used the approval channel once')
 } finally {
   rmSync(base, { recursive: true, force: true })
   try { await root.dispose() } catch { }

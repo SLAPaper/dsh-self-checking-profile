@@ -30,6 +30,7 @@ const session = {
   header: { cwd: workspace }
 }
 const tools = new Map()
+let approvalRequests = []
 const root = new Context()
 const stub = (name, value) => ({ name, apply(ctx) { ctx.provide(name, value) } })
 
@@ -39,6 +40,7 @@ await root.plugin(SandboxPolicyService, { mode: 'workspace-write', workspaceRoot
 await root.plugin(stub('sessions', { get: (id) => id === SESSION ? session : undefined, list: () => [] }))
 await root.plugin(stub('systemPrompt', { section: () => {}, context: () => {} }))
 await root.plugin(stub('tools', { register: (definition) => { tools.set(definition.name, definition) } }))
+await root.plugin(stub('approval', { request: async (request) => { approvalRequests.push(request); return 'allowed-once' } }))
 await root.plugin(selfCheckingPlugin)
 await root.plugin(toolFs)
 
@@ -66,6 +68,19 @@ try {
   const retryValue = await writeTool.execute(outsideArgs, exec)
   check(retryValue.operation === 'create', 'exact re-run creates the outside file through the native write tool')
   check(readFileSync(join(outside, 'tool-outside.txt'), 'utf8') === 'outside-ok', 're-run wrote outside through the native write tool')
+
+  // Explicit escalation still works: standing mode is workspace-write, so
+  // sandbox_permissions=danger-full-access routes through ctx.approval.
+  const approvedArgs = {
+    file_path: join(outside, 'tool-approved.txt'),
+    content: 'approved',
+    sandbox_permissions: 'danger-full-access',
+    justification: 'the user asked for this outside-workspace file'
+  }
+  const approvedValue = await writeTool.execute(approvedArgs, exec)
+  check(approvedValue.operation === 'create', 'explicit fs escalation executes with full access')
+  check(readFileSync(join(outside, 'tool-approved.txt'), 'utf8') === 'approved', 'explicit fs escalation wrote outside')
+  check(approvalRequests.length === 1 && approvalRequests[0].toolName === 'write', 'fs escalation used the approval channel once')
 } finally {
   rmSync(base, { recursive: true, force: true })
   try { await root.dispose() } catch { }
