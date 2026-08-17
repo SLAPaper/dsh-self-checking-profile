@@ -1,6 +1,6 @@
 # build artifacts
-profile/node_modules/
-built-fork/
+legacy/profile/node_modules/
+legacy/built-fork/
 release-test/
 *.zip
 *.tgz

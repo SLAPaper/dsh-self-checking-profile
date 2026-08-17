@@ -1,0 +1,41 @@
+# Spike: single-package service-replacement proof for Self Checking.
+#
+# The trick: DO NOT add a new SandboxMode. `self-checking` is a permission
+# preset whose sandbox knob is the EXISTING `workspace-write` mode; the
+# package's host plugin detects that preset and swaps in subclasses of the
+# upstream sandbox executors / filesystem fence.
+#
+# If the plugin is missing or fails to load, the preset degrades to plain
+# workspace-write + ask — fail-closed, never full access.
+
+- id: bash-sandbox
+  disabled: true
+
+- id: pwsh-sandbox
+  disabled: true
+
+- id: fs-sandbox
+  disabled: true
+
+- id: permission
+  name: '@deepseek-ai/dsh-permission-presets'
+  config:
+    presets:
+      read-only:
+        sandbox: read-only
+        approval: ask
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      self-checking:
+        sandbox: workspace-write
+        approval: ask
+        name: 🛡️🔍 Self Checking
+        description: "Full access with a workspace boundary check: commands run under workspace-write first; an intercepted outside-workspace access is allowed — only when the access is intentional — by re-running the same command, which executes with full access."
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never
+
+- insert:
+    - id: self-checking
+      name: dsh-self-checking

@@ -1,0 +1,59 @@
+{
+  "name": "dsh-self-checking",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-bash-sandbox": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-pwsh-sandbox": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-fs": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-fs-sandbox": "^0.1.0-rc.6"
+  },
+  "license": "MIT",
+  "scripts": {
+    "pretest": "node scripts/link-test-deps.mjs",
+    "test": "node tests/self-checking.test.mjs && node tests/cordis-registration.test.mjs && node tests/fs-tool-layer.test.mjs",
+    "test:live": "node tests/live-runner.test.mjs && node tests/tool-layer.test.mjs",
+    "test:all": "npm test && npm run test:live",
+    "install:dev-profile": "node scripts/install-dev-profile.mjs",
+    "verify:installed": "node scripts/verify-installed.mjs --profile web"
+  },
+  "files": [
+    "lib/",
+    "cordis.patch.yml",
+    "package.json",
+    "README.md",
+    "scripts/verify-installed.mjs"
+  ],
+  "description": "DeepSeek Harness permission preset that runs commands under workspace-write first and unlocks full access only for an intentional exact re-run.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SLAPaper/dsh-self-checking-profile.git"
+  },
+  "homepage": "https://github.com/SLAPaper/dsh-self-checking-profile#readme",
+  "bugs": {
+    "url": "https://github.com/SLAPaper/dsh-self-checking-profile/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "permission",
+    "sandbox",
+    "self-checking"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "dsh-self-checking-verify": "scripts/verify-installed.mjs"
+  }
+}
