@@ -5,6 +5,29 @@ All notable changes to this repository are documented here. The baseline
 
 ## Unreleased
 
+### Added
+
+- **Plugin delivery route** (`plugin/`): a single `dsh-self-checking` bundle
+  package that subclasses the upstream sandbox shell/fs services. The
+  `self-checking` permission preset reuses the existing `workspace-write`
+  sandbox knob, and `install-plugin.sh` / `install-plugin.ps1` install the
+  local `file:` package (npm publishing is intentionally deferred).
+- Installed-profile verifier for the plugin route
+  (`dsh-self-checking-verify --profile <name> --strict`), plus unit, Cordis,
+  native tool-layer, same-session switch, and Windows real-runner coverage.
+- Delivery decision record (`docs/self-checking-routes.md`).
+
+### Changed
+
+- Repository split into two routes: `plugin/` (new single-package route) and
+  `legacy/` (the previous fork/profile route, with all of its tooling,
+  patches, upstream snapshot, tests, and installers moved there unchanged).
+- Legacy release archive now builds under `legacy/`; root
+  `install-legacy.sh` / `install-legacy.ps1` wrap `legacy/install.*`.
+- Root README now compares the two routes (principle, install UX, upstream
+  dependency, and degradation behavior) instead of presenting only the fork
+  route.
+
 ### Changed
 
 - Interception notice is now defensive: it states that a re-run is the

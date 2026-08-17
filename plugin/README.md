@@ -26,7 +26,7 @@ Then select **🛡️🔍 Self Checking** in the permission picker or run
 Until the package is published, the same path works from this checkout:
 
 ```bash
-dsh plugin --profile web add file:/path/to/dsh-self-checking
+dsh plugin --profile web add file:/path/to/dsh-self-checking/plugin
 ```
 
 Restart dsh web and hard-refresh the browser after changing the bundle list.
@@ -69,7 +69,7 @@ present).
 ## What was validated
 
 ```bash
-cd spike
+cd plugin
 npm test          # gate, fs fence + native write/edit tools, registration
 npm run test:live # real pwsh + windows-acl runner and native pwsh tool layer
 ```
@@ -99,7 +99,7 @@ Also validated against a real dsh `0.1.0-rc.6` profile:
 
 ```bash
 # The intended one-package install path, against a scratch DSH_HOME:
-dsh plugin --profile web add file:/path/to/dsh-self-checking
+dsh plugin --profile web add file:/path/to/dsh-self-checking/plugin
 dsh --profile web --port 0
 
 # Without pnpm, a dev-profile copier is available:
@@ -145,7 +145,7 @@ disabled and the permission preset inserted.
 1. Bump the `@deepseek-ai/dsh-*` peer ranges in `package.json`.
 2. Run `npm test` and (on Windows) `npm run test:live`.
 3. Install into a scratch profile with `dsh plugin --profile web add
-   file:/path/to/dsh-self-checking`, boot with `--port 0`, and run
+   file:/path/to/dsh-self-checking/plugin`, boot with `--port 0`, and run
    `verify-installed.mjs --strict`.
 4. Review the tool-layer test output by hand: the model-facing notice must
    still appear, with no generic denial marker, and the exact re-run must

@@ -11,4 +11,4 @@
 *.d.ts text eol=lf
 LICENSE text eol=lf
 # vendored upstream npm packages must stay byte-exact (LF) on every checkout
-upstream/** text eol=lf
+legacy/upstream/** text eol=lf

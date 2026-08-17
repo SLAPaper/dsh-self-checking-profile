@@ -2,7 +2,7 @@
  * Spike shared runtime: per-session interception gate + preset detection.
  *
  * Unlike the fork layer, there is no `self-checking` SandboxMode in this
- * spike. The permission preset reuses `workspace-write` + `ask`; the runtime
+ * plugin route. The permission preset reuses `workspace-write` + `ask`; the runtime
  * tells the replacement service providers whether a given session is
  * currently in that preset.
  */
@@ -22,7 +22,7 @@ export const FS_SELF_CHECK_FAIL_HINT = "\n[sandbox: self-check notice — this o
 
 /**
  * Relaxed denial signatures. The upstream windows-acl backend does not ship
- * `operation not permitted`; the fork layer adds it there. This spike keeps
+ * `operation not permitted`; the fork layer adds it there. This plugin keeps
  * upstream providers untouched and applies the wider list here instead.
  */
 export const SELF_CHECK_DENIAL_SIGNATURES = [
@@ -82,7 +82,7 @@ export function createRuntime() {
     },
     /**
      * Best-effort preset lookup from the session log alone. Deliberately does
-     * NOT use the permissionPresets service: the main spike plugin must be
+     * NOT use the permissionPresets service: the main plugin must be
      * able to mount `ctx.shell` before permissionPresets activates, and
      * permissionPresets pins a `permission/preset` event at session creation.
      * Empty string means "not self-checking".
@@ -97,7 +97,7 @@ export function createRuntime() {
       }
     },
     /**
-     * A policy belongs to the spike's self-checking path when it already
+     * A policy belongs to the plugin's self-checking path when it already
      * carries a `self-checking` mode (direct/test usage) or when the session
      * selected the `self-checking` preset while the policy's mode is the
      * preset's standing mode (`workspace-write`).

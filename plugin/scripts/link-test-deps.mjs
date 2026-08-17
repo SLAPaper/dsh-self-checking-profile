@@ -1,6 +1,6 @@
-// Creates spike/node_modules/@deepseek-ai links to the local dsh fallback so
-// the spike package can be imported from this repo without a pnpm install.
-// spike/node_modules is gitignored.
+// Creates plugin/node_modules/@deepseek-ai links to the local dsh fallback so
+// the plugin package can be imported from this repo without a pnpm install.
+// plugin/node_modules is gitignored.
 import { existsSync, mkdirSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'

@@ -1,7 +1,7 @@
-// Live runner spike test (Windows only, opt-in):
+// Live runner plugin-route test (Windows only, opt-in):
 //   node tests/live-runner.test.mjs
 // Boots real LocalSubprocessRuntime + LocalSandboxProvider + SandboxPolicyService
-// in a Cordis context and runs the spike's SelfCheckingPwshExecutor against
+// in a Cordis context and runs the plugin's SelfCheckingPwshExecutor against
 // the real windows-acl runner: inside write passes, outside write is
 // intercepted once, and the exact re-run executes with full access.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
@@ -15,7 +15,7 @@ import * as selfCheckingPlugin from '../lib/index.js'
 import { selfCheckNoticeMarker } from '../lib/state.js'
 
 if (process.platform !== 'win32') {
-  console.log('live-runner spike test is Windows-only (pwsh + windows-acl); skipping')
+  console.log('live-runner plugin-route test is Windows-only (pwsh + windows-acl); skipping')
   process.exit(0)
 }
 
@@ -25,7 +25,7 @@ function check(cond, label) {
   else { failures += 1; console.error(`  FAIL: ${label}`) }
 }
 
-const base = mkdtempSync(join(homedir(), 'dsh-sc-spike-live-'))
+const base = mkdtempSync(join(homedir(), 'dsh-sc-plugin-live-'))
 const workspace = join(base, 'workspace')
 const outside = join(base, 'outside')
 mkdirSync(workspace)
@@ -61,7 +61,7 @@ await root.plugin(stub('systemPrompt', { context: () => {} }))
 await root.plugin(selfCheckingPlugin)
 const shell = root.get('shell')
 
-// Actual spike preset: standing sandbox mode is workspace-write; the session
+// Actual plugin preset: standing sandbox mode is workspace-write; the session
 // log's last permission/preset event is what switches on Self Checking.
 const policy = { mode: 'workspace-write', workspaceRoot: workspace, sessionId: SESSION }
 
@@ -131,7 +131,7 @@ try {
   await bgRetry.done
   check(existsSync(bgFile) && readFileSync(bgFile, 'utf8').trim() === 'outside-ok', 'background exact re-run writes with full access')
 
-  // Same-session preset switch: workspace-write turns the spike gate off and
+  // Same-session preset switch: workspace-write turns the plugin gate off and
   // restores the native plain denial; danger-full-access runs untouched.
   const sameSession = sessionMap.get(SESSION)
   sameSession.events.push(
@@ -196,5 +196,5 @@ if (failures > 0) {
   console.error(`\n${failures} LIVE CHECK(S) FAILED`)
   process.exitCode = 1
 } else {
-  console.log('\nALL LIVE SPIKE CHECKS PASSED')
+  console.log('\nALL LIVE PLUGIN-ROUTE CHECKS PASSED')
 }

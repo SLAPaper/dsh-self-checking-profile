@@ -29,7 +29,7 @@ function appendNotice(body, notice) {
 }
 
 /**
- * The native tool renderer does not know the spike's `intercepted`/`failed`
+ * The native tool renderer does not know the plugin's `intercepted`/`failed`
  * facts (we intentionally did not fork dsh-tool-bash/pwsh). Bake the notice
  * into stdout text instead and clear stderr so the native renderer does not
  * emit a generic denial marker.

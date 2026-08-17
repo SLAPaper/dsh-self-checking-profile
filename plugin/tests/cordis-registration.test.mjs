@@ -41,7 +41,7 @@ check(fs?.sandboxMode === 'workspace-write', 'fs advertises the standing workspa
 check(promptDefinition !== undefined, 'systemPrompt context registered')
 const selfCheckingText = promptDefinition?.text({ agent: { session: sessions.get('sc-s1') } }) ?? ''
 const workspaceText = promptDefinition?.text({ agent: { session: sessions.get('ww-s1') } }) ?? ''
-check(selfCheckingText.includes('Self Checking mode is active'), 'self-checking session gets the spike context')
+check(selfCheckingText.includes('Self Checking mode is active'), 'self-checking session gets the plugin context')
 check(workspaceText === '', 'ordinary workspace-write session gets no extra context')
 
 if (failures > 0) process.exitCode = 1

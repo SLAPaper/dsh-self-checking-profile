@@ -40,6 +40,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const REPO_ROOT = join(ROOT, "..");
 const UPSTREAM_ROOT = join(ROOT, "upstream");
 const UPSTREAM_PKGS = join(UPSTREAM_ROOT, "@deepseek-ai");
 const VERSION_FILE = join(UPSTREAM_ROOT, "VERSION");
@@ -48,7 +49,7 @@ const FORKS_ROOT = join(ROOT, "profile", "forks");
 // tool runs under workspace-write confinement; stdout/stderr of git are
 // captured via file descriptors instead of pipes, which restricted sandboxes
 // deny)
-const GIT_TMP = join(ROOT, ".git", "dsh-merge-tmp");
+const GIT_TMP = join(REPO_ROOT, ".git", "dsh-merge-tmp");
 
 const MODIFIED = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation", "dsh-tool-fs"];
 const PRISTINE_COPY = ["dsh-permission-presets"];
@@ -135,7 +136,7 @@ for (const pkg of ALL) {
 }
 
 // base snapshot must be committed
-const oldVersion = gitShow("upstream/VERSION")?.trim();
+const oldVersion = gitShow("legacy/upstream/VERSION")?.trim();
 if (!oldVersion) {
   console.error("no committed upstream snapshot found — run tools/snapshot-upstream.mjs and commit first");
   process.exit(1);
@@ -149,8 +150,8 @@ if (oldVersion === newVersion) {
 const stats = { merged: 0, taken: 0, kept: 0, new: 0, deleted: 0, keptDeleted: 0, conflicts: [] };
 
 for (const pkg of ALL) {
-  const oldFiles = new Set(gitLsTree(`upstream/@deepseek-ai/${pkg}`));
-  const oldRead = (rel) => gitShow(`upstream/@deepseek-ai/${pkg}/${rel}`);
+  const oldFiles = new Set(gitLsTree(`legacy/upstream/@deepseek-ai/${pkg}`));
+  const oldRead = (rel) => gitShow(`legacy/upstream/@deepseek-ai/${pkg}/${rel}`);
   const newDirPkg = join(newPkgs, pkg);
   const newFiles = existsSync(newDirPkg) ? new Set(walkFiles(newDirPkg)) : new Set();
   const newRead = (rel) => existsSync(join(newDirPkg, rel)) ? readFileSync(join(newDirPkg, rel), "utf8") : null;
@@ -243,12 +244,12 @@ console.log(`\nsummary: merged ${stats.merged}, taken ${stats.taken}, new ${stat
 if (stats.conflicts.length > 0) {
   console.error("conflicts to resolve:");
   for (const c of stats.conflicts) console.error(`  - ${c}`);
-  console.error("resolve the conflict markers in profile/forks, then run gen-patches.mjs + rebuild-fork.mjs --check + verify-self-checking.mjs, and commit the snapshot + forks together.");
+  console.error("resolve the conflict markers in legacy/profile/forks, then run gen-patches.mjs + rebuild-fork.mjs --check + verify-self-checking.mjs, and commit the snapshot + forks together.");
   process.exitCode = 1;
 } else {
   console.log("next steps:");
-  console.log("  node tools/gen-patches.mjs upstream/@deepseek-ai profile/forks patches");
-  console.log("  node tools/rebuild-fork.mjs --upstream upstream/@deepseek-ai --out <tmp> --check profile/forks");
-  console.log("  node tests/verify-self-checking.mjs");
-  console.log("  git add upstream profile/forks patches && git commit");
+  console.log("  node legacy/tools/gen-patches.mjs legacy/upstream/@deepseek-ai legacy/profile/forks legacy/patches");
+  console.log("  node legacy/tools/rebuild-fork.mjs --upstream legacy/upstream/@deepseek-ai --out <tmp> --check legacy/profile/forks");
+  console.log("  node legacy/tests/verify-self-checking.mjs");
+  console.log("  git add legacy/upstream legacy/profile/forks legacy/patches && git commit");
 }

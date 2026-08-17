@@ -1,6 +1,6 @@
 // Native filesystem-tool integration (cross-platform):
 //   node tests/fs-tool-layer.test.mjs
-// Loads the REAL dsh-tool-fs plugin over the spike's replacement ctx.fs and
+// Loads the REAL dsh-tool-fs plugin over the plugin's replacement ctx.fs and
 // exercises the `write` tool definition: inside write succeeds, outside write
 // throws the FS_SELFCHECK_INTERCEPTED marker, and the exact re-run succeeds.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -18,7 +18,7 @@ function check(cond, label) {
   else { failures += 1; console.error(`  FAIL: ${label}`) }
 }
 
-const base = mkdtempSync(join(homedir(), 'dsh-sc-spike-fstool-'))
+const base = mkdtempSync(join(homedir(), 'dsh-sc-plugin-fstool-'))
 const workspace = join(base, 'workspace')
 const outside = join(base, 'outside')
 mkdirSync(workspace)
@@ -47,8 +47,8 @@ await root.plugin(toolFs)
 
 const writeTool = tools.get('write')
 const editTool = tools.get('edit')
-check(writeTool !== undefined, 'native write tool registered over the spike fs')
-check(editTool !== undefined, 'native edit tool registered over the spike fs')
+check(writeTool !== undefined, 'native write tool registered over the plugin fs')
+check(editTool !== undefined, 'native edit tool registered over the plugin fs')
 
 const exec = {
   callId: 'fs-tool-call-1',
@@ -85,7 +85,7 @@ try {
   check(readFileSync(join(outside, 'tool-approved.txt'), 'utf8') === 'approved', 'explicit fs escalation wrote outside')
   check(approvalRequests.length === 1 && approvalRequests[0].toolName === 'write', 'fs escalation used the approval channel once')
 
-  // Native edit tool over the spike fs: outside edit intercepts once, the
+  // Native edit tool over the plugin fs: outside edit intercepts once, the
   // exact re-run edits with full access.
   const editOutsideFile = join(outside, 'edit-outside.txt')
   writeFileSync(editOutsideFile, 'v1')
@@ -109,7 +109,7 @@ try {
   check(editFailError?.code === 'FS_EDIT_NOT_FOUND', 'ordinary edit failure keeps its structured code')
   check(editFailError?.message.includes(FS_SELF_CHECK_FAIL_HINT.trim()), 'ordinary edit failure carries the self-check hint through the native tool layer')
 
-  // Same-session preset switch: moving to workspace-write turns the spike
+  // Same-session preset switch: moving to workspace-write turns the plugin
   // gate off and restores the native plain denial; moving to full access
   // executes without any gate.
   session.events.push(

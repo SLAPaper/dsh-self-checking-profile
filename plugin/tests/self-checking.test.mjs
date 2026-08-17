@@ -32,7 +32,7 @@ console.log('== 1. runtime gate ==')
   check(runtime.isSelfChecking({ mode: 'workspace-write', sessionId: S1 }) === true, 'workspace-write policy + self-checking preset detected')
   check(runtime.isSelfChecking({ mode: 'workspace-write', sessionId: 'other' }) === false, 'unknown session is not self-checking')
   check(runtime.isSelfChecking({ mode: 'workspace-write' }) === false, 'agentless workspace-write is not self-checking')
-  check(runtime.isSelfChecking({ mode: 'danger-full-access', sessionId: S1 }) === false, 'full access bypasses the spike gate')
+  check(runtime.isSelfChecking({ mode: 'danger-full-access', sessionId: S1 }) === false, 'full access bypasses the plugin gate')
   check(runtime.allowed(S1, 'cmd A') === false, 'fresh key not allowed')
   runtime.record(S1, 'cmd A')
   check(runtime.allowed(S1, 'cmd A') === true, 'recorded key allowed')
@@ -45,7 +45,7 @@ console.log('== 2. real fs fence via subclass ==')
   const runtime = createRuntime()
   runtime.sessions = stubPresetServices().sessions
   const SelfCheckingFs = makeSelfCheckingFs(runtime)
-  const base = mkdtempSync(join(homedir(), 'dsh-sc-spike-'))
+  const base = mkdtempSync(join(homedir(), 'dsh-sc-plugin-'))
   const workspace = join(base, 'workspace')
   const outside = join(base, 'outside')
   mkdirSync(workspace)
@@ -237,5 +237,5 @@ if (failures > 0) {
   console.error(`\n${failures} CHECK(S) FAILED`)
   process.exitCode = 1
 } else {
-  console.log('\nALL SPIKE CHECKS PASSED')
+  console.log('\nALL PLUGIN-ROUTE CHECKS PASSED')
 }
