@@ -4,7 +4,7 @@ import { createRuntime, SELF_CHECK_PRESET } from './state.js'
 import { makeSelfCheckingShell } from './shell.js'
 import { makeSelfCheckingFs } from './fs.js'
 
-export const name = 'dsh-self-checking-spike'
+export const name = 'dsh-self-checking'
 
 /**
  * The main plugin only owns runtime state. It then mounts replacement
@@ -32,7 +32,7 @@ export function apply(ctx) {
 
   ctx.inject(['systemPrompt'], (promptCtx) => {
     promptCtx.systemPrompt.context({
-      name: 'sandbox:self-checking-spike',
+      name: 'sandbox:self-checking',
       order: 111,
       text: (context) => {
         const session = context.agent?.session
@@ -48,5 +48,5 @@ export function apply(ctx) {
     })
   })
 
-  ctx.logger.info('dsh-self-checking-spike: active (subclass service replacement)')
+  ctx.logger.info('dsh-self-checking: active (subclass service replacement)')
 }

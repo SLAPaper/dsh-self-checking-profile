@@ -1,17 +1,53 @@
-# Spike: single-package Self Checking (service-replacement)
+# dsh-self-checking
 
-Proof of concept for the "can we make Self Checking install like Alnita's
-one-package plugin instead of shadowing 12 upstream packages?" question.
+A single-package DeepSeek Harness (dsh) permission preset that keeps the
+Self Checking semantics from the fork profile without shadowing any
+`@deepseek-ai/*` package: commands and file operations run under
+`workspace-write` first; an outside-workspace access is intercepted once, and
+re-running the exact same command/operation executes with full access.
 
-**Verdict: viable in principle.** A single bundle package can keep the
-Self Checking semantics without adding a new `SandboxMode`, by subclassing the
-upstream service providers and disabling their native rows through
-`cordis.patch.yml`.
+## Install
+
+Requirements:
+
+- dsh `0.1.0-rc.6` (run `npx @deepseek-ai/dsh` once so the shared profile
+  fallback exists).
+
+Once published:
+
+```bash
+dsh plugin --profile web add dsh-self-checking
+dsh web
+```
+
+Then select **🛡️🔍 Self Checking** in the permission picker or run
+`/permission self-checking`.
+
+Until the package is published, the same path works from this checkout:
+
+```bash
+dsh plugin --profile web add file:/path/to/dsh-self-checking
+```
+
+Restart dsh web and hard-refresh the browser after changing the bundle list.
+
+## Verify an installed profile
+
+```bash
+dsh-self-checking-verify --profile web --strict
+# or, without the bin link:
+node <profile>/node_modules/dsh-self-checking/scripts/verify-installed.mjs \
+  --profile <profile> --dsh-home "$DSH_HOME" --strict
+```
+
+The verifier checks the profile bundle list, the installed package, and the
+composed dsh config (native service rows disabled, preset and plugin row
+present).
 
 ## Design
 
-- `self-checking` is a permission **preset** whose sandbox knob is the existing
-  `workspace-write` + `approval: ask`. No `SANDBOX_MODES` change.
+- `self-checking` is a permission **preset** whose sandbox knob is the
+  existing `workspace-write` + `approval: ask`. No `SANDBOX_MODES` change.
 - The bundle patch disables the native `bash-sandbox`, `pwsh-sandbox` and
   `fs-sandbox` rows and inserts this package.
 - The host plugin mounts:
@@ -56,32 +92,26 @@ npm run test:live # real pwsh + windows-acl runner and native pwsh tool layer
   `sandbox_permissions=danger-full-access` + approval channel working;
 - **same-session preset switching**: appending workspace-write or
   danger-full-access permission events to the same session immediately turns
-  the spike gate off and restores native behavior;
+  the gate off and restores native behavior;
 - Cordis registration: the package plugin mounts both replacement services.
 
 Also validated against a real dsh `0.1.0-rc.6` profile:
 
 ```bash
 # The intended one-package install path, against a scratch DSH_HOME:
-dsh plugin --profile web add file:/path/to/dsh-self-checking/spike
+dsh plugin --profile web add file:/path/to/dsh-self-checking
 dsh --profile web --port 0
 
 # Without pnpm, a dev-profile copier is available:
-npm run install:dev-profile -- --dsh-home "$DSH_HOME" --profile spike
+npm run install:dev-profile -- --dsh-home "$DSH_HOME" --profile self-checking
 
-dsh --profile spike --dump-default-config
-dsh --profile spike --port 0
+dsh --profile self-checking --dump-default-config
+dsh --profile self-checking --port 0
 ```
 
 `dsh plugin add` appends the bundle to `dsh.profile.bundles`; both boot paths
 activate cleanly. `--dump-default-config` shows the three native service rows
 disabled and the permission preset inserted.
-
-An installed profile can be checked with:
-
-```bash
-node <profile>/node_modules/dsh-self-checking-spike/scripts/verify-installed.mjs   --profile <profile> --dsh-home "$DSH_HOME" --strict
-```
 
 ## Known limitations / accepted differences
 
@@ -92,10 +122,9 @@ node <profile>/node_modules/dsh-self-checking-spike/scripts/verify-installed.mjs
    `dsh-tool-pwsh` integration test covers exactly that path.
 2. **Live kernel-sandbox coverage is Windows-only.** Real pwsh foreground
    and background runs are covered by `test:live`. Linux bwrap/Landlock and
-   macOS Seatbelt live runs are not covered because this spike has no
+   macOS Seatbelt live runs are not covered because this project has no
    Linux/macOS environment; the bash subclass currently has surface/stub
-   coverage only. This is an accepted environmental limitation, not a
-   planned follow-up here.
+   coverage only. This is an accepted environmental limitation.
 3. **No custom SVG permission-picker icon.** The preset name embeds
    `🛡️🔍` emojis instead (shield + magnifier, matching the fork glyph's
    intent), which the picker renders because non-kebab host names pass
@@ -111,13 +140,33 @@ node <profile>/node_modules/dsh-self-checking-spike/scripts/verify-installed.mjs
    mode they stay confined by the native code, which matches the fork layer's
    terminal policy. No intercept/re-run is offered there (same as the fork).
 
-## If this is promoted
+## Upgrading to a new dsh baseline
 
-- Move the spike package to a real npm package (drop `private`, add
-  `@deepseek-ai/dsh-*` peer ranges).
-- Replace `profile/` + `built-fork` with `dsh plugin --profile <name> add
-  dsh-self-checking` installation.
-- Map the existing `tests/verify-self-checking.mjs` assertions onto the spike
-  suite; pwsh live runner coverage already exists, bash live coverage is
-  accepted as unavailable in this environment.
-- Keep the emoji-based picker decoration; no client-ui fork is needed.
+1. Bump the `@deepseek-ai/dsh-*` peer ranges in `package.json`.
+2. Run `npm test` and (on Windows) `npm run test:live`.
+3. Install into a scratch profile with `dsh plugin --profile web add
+   file:/path/to/dsh-self-checking`, boot with `--port 0`, and run
+   `verify-installed.mjs --strict`.
+4. Review the tool-layer test output by hand: the model-facing notice must
+   still appear, with no generic denial marker, and the exact re-run must
+   succeed.
+
+Upstream internals this package relies on:
+
+- `SandboxBashExecutor` / `SandboxPwshExecutor`: `run`, `start`,
+  `processFacts`, `onProcessDone`, inherited `runArgv`/`startArgv`, and
+  `confine`.
+- `SandboxedFileSystem`: `writeText`, `editText`, `checkedTarget`, and the
+  `FS_SANDBOX_DENIED` error code contract.
+- dsh tool renderers: `dsh-tool-pwsh` canonical result/rendering must keep
+  accepting the native sandbox fields while ignoring our extra flags.
+- `dsh-sandbox-policy`: resolved policies must keep carrying
+  `mode`/`workspaceRoot`/`sessionId`.
+- `dsh-permission-presets`: session creation must keep pinning a
+  `permission/preset` event.
+
+## Development without pnpm
+
+`npm test` links the local dsh fallback packages into `node_modules/` via
+`scripts/link-test-deps.mjs`; `npm run install:dev-profile` copies this
+package into a local profile for boot testing.

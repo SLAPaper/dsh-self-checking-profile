@@ -38,4 +38,4 @@
 
 - insert:
     - id: self-checking
-      name: dsh-self-checking-spike
+      name: dsh-self-checking

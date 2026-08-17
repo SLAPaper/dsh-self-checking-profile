@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Installed-profile verifier for the spike package:
+// Installed-profile verifier for dsh-self-checking:
 //   node scripts/verify-installed.mjs --profile <name> [--dsh-home <path>] [--strict]
 //
 // Checks that the package is present under the profile, the profile bundle
@@ -24,7 +24,7 @@ const take = (flag, fallback) => {
   args.splice(index, 2)
   return value
 }
-const profile = take('--profile', 'self-checking-spike')
+const profile = take('--profile', 'web')
 const dshHome = resolve(take('--dsh-home', process.env.DSH_HOME ?? join(homedir(), '.dsh')))
 const strict = args.includes('--strict')
 if (strict) args.splice(args.indexOf('--strict'), 1)

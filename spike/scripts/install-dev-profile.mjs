@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Install the spike package into a local dsh profile for end-to-end testing:
-//   node scripts/install-dev-profile.mjs [--profile self-checking-spike] [--dsh-home ~/.dsh] [--force]
+// Install this package into a local dsh profile for end-to-end testing:
+//   node scripts/install-dev-profile.mjs [--profile self-checking] [--dsh-home ~/.dsh] [--force]
 //
 // This mimics what `dsh plugin --profile <name> add dsh-self-checking` will
 // do once the package is published, without needing pnpm or a registry.
@@ -19,7 +19,7 @@ const take = (flag, fallback) => {
   args.splice(index, 2)
   return value
 }
-const profile = take('--profile', 'self-checking-spike')
+const profile = take('--profile', 'self-checking')
 const dshHome = resolve(take('--dsh-home', process.env.DSH_HOME ?? join(homedir(), '.dsh')))
 const force = args.includes('--force')
 if (args.length > 0) throw new Error(`unknown arguments: ${args.join(' ')}`)
