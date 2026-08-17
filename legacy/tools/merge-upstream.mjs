@@ -64,7 +64,7 @@ function git(args, opts = {}) {
   const outFd = openSync(outFile, "w"), errFd = openSync(errFile, "w");
   let status;
   try {
-    const r = spawnSync("git", args, { cwd: opts.cwd ?? ROOT, stdio: ["ignore", outFd, errFd] });
+    const r = spawnSync("git", args, { cwd: opts.cwd ?? REPO_ROOT, stdio: ["ignore", outFd, errFd] });
     status = r.status;
   } finally {
     closeSync(outFd);
