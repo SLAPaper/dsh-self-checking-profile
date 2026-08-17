@@ -18,8 +18,12 @@ const packages = [
   'dsh-permission-presets',
   'dsh-pwsh-local',
   'dsh-pwsh-sandbox',
+  'dsh-sandbox',
+  'dsh-sandbox-local',
   'dsh-sandbox-policy',
-  'dsh-session'
+  'dsh-session',
+  'dsh-shell',
+  'dsh-subprocess-local'
 ]
 if (!existsSync(join(fallback, packages[0]))) {
   console.error(`dsh fallback not found at ${fallback}; run dsh once or set DSH_HOME`)

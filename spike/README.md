@@ -33,7 +33,9 @@ upstream service providers and disabling their native rows through
 ## What was validated
 
 ```bash
-cd spike && npm test
+cd spike
+npm test          # gate, fs fence, stubbed executor surface, Cordis registration
+npm run test:live # real pwsh + windows-acl runner (Windows only)
 ```
 
 - runtime gate and session disposal;
@@ -42,13 +44,19 @@ cd spike && npm test
 - pwsh executor surface with stubbed argv: denied probe, full-access re-run,
   exit-0 stderr denial, confined failure, background denial/failure and
   one-shot notice emission;
+- **live runner** on Windows: real `windows-acl` confinement around real pwsh
+  foreground and background processes — inside write passes, outside write is
+  intercepted once and does not happen, the exact re-run writes with full
+  access;
 - Cordis registration: the package plugin mounts both replacement services.
 
 Also validated against a real dsh `0.1.0-rc.6` profile:
 
 ```bash
-# temporary DSH_HOME profile with bundles:
-# @deepseek-ai/dsh-base, @deepseek-ai/dsh-web-app, dsh-self-checking-spike
+# create a local end-to-end profile (mimics the future
+# `dsh plugin --profile <name> add dsh-self-checking`):
+npm run install:dev-profile -- --dsh-home "$DSH_HOME" --profile spike
+
 dsh --profile spike --dump-default-config
 dsh --profile spike --port 0
 ```
@@ -64,10 +72,10 @@ unactivated entries.
    before native exit-code markers. The existing fork layer renders the marker
    as a separate trailing marker. Text content is preserved; ordering was
    checked in the spike tests but not against the live runner.
-2. **No live kernel-sandbox run yet.** The executor tests stub `runArgv`
-   (matching the repo's existing executor-surface test style); the fs fence
-   test is against the real implementation. A real pwsh/bash outside-workspace
-   write should be run before promotion.
+2. **Live kernel-sandbox coverage is Windows-only.** Real pwsh foreground
+   and background runs are covered by `test:live`. Real bash (Linux/macOS),
+   Linux bwrap/Landlock, and macOS Seatbelt runs are not covered in this
+   environment yet.
 3. **No custom permission-picker icon.** That fork is cosmetic only; the
    picker falls back to no glyph for `self-checking`.
 4. **Depends on upstream class internals** (`processFacts`, `startArgv`,
