@@ -35,7 +35,7 @@ upstream service providers and disabling their native rows through
 ```bash
 cd spike
 npm test          # gate, fs fence, stubbed executor surface, Cordis registration
-npm run test:live # real pwsh + windows-acl runner (Windows only)
+npm run test:live # real pwsh + windows-acl runner and native tool layer
 ```
 
 - runtime gate and session disposal;
@@ -47,7 +47,11 @@ npm run test:live # real pwsh + windows-acl runner (Windows only)
 - **live runner** on Windows: real `windows-acl` confinement around real pwsh
   foreground and background processes — inside write passes, outside write is
   intercepted once and does not happen, the exact re-run writes with full
-  access;
+  access; normal workspace-write and danger-full-access presets are untouched;
+- **native tool layer** on Windows: the real `dsh-tool-pwsh` plugin is loaded
+  over the spike shell and its `execute -> canonical value -> output.render`
+  path shows the notice in the model-facing text with no generic denial
+  marker;
 - Cordis registration: the package plugin mounts both replacement services.
 
 Also validated against a real dsh `0.1.0-rc.6` profile:
@@ -70,11 +74,10 @@ disabled and the permission preset inserted.
 
 ## Current limitations
 
-1. **Foreground shell notice formatting is close, not byte-identical.** The
-   native tool renderer is untouched, so the notice is embedded in `stdout`
-   before native exit-code markers. The existing fork layer renders the marker
-   as a separate trailing marker. Text content is preserved; ordering was
-   checked in the spike tests but not against the live runner.
+1. **The native tool renderer is untouched.** The notice is embedded in
+   `stdout` before the native exit-code marker; the real `dsh-tool-pwsh`
+   integration test confirms the model-facing text reads naturally, but it is
+   not automatically byte-diffed against the fork layer's rendered output.
 2. **Live kernel-sandbox coverage is Windows-only.** Real pwsh foreground
    and background runs are covered by `test:live`. Real bash (Linux/macOS),
    Linux bwrap/Landlock, and macOS Seatbelt runs are not covered in this
