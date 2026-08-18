@@ -22,7 +22,7 @@
 - **Fork 层** —— `profile/forks/` 下 12 个 fork 的 `@deepseek-ai` 包，仅对本
   profile 遮蔽同名的上游包；上游安装保持原样。
 - **补丁集** —— `patches/*.json`（机器可套用的锚定替换）与 `patches/*.diff`
-  （供人工审阅），可从一份干净的 dsh 0.1.0-rc.6 安装逐字节重建 fork 层。
+  （供人工审阅），可从一份干净的 dsh 0.1.0-rc.7 安装逐字节重建 fork 层。
 - **上游版本追踪** —— `upstream/` 以 git 跟踪的方式固化基线对应的 npm 包
   原始字节，版本记录在 `upstream/VERSION`。升级到新的 dsh 基线是对这份已提交
   快照的**三方合并**（`tools/merge-upstream.mjs`），而非盲目重打补丁：只有上游
@@ -73,7 +73,7 @@ Self Checking 是"带工作区边界检查的完全访问"：
 
 ```
 ├── upstream/                  固化的基线快照（git 跟踪）
-│   ├── VERSION                基线版本（如 0.1.0-rc.6）
+│   ├── VERSION                基线版本（如 0.1.0-rc.7）
 │   └── @deepseek-ai/          12 个包的 npm 原始字节
 ├── profile/                   可安装的 profile 模板
 │   ├── forks/                 12 个 fork 包（唯一事实来源）
@@ -101,7 +101,7 @@ Self Checking 是"带工作区边界检查的完全访问"：
 
 ## 环境要求
 
-- dsh **0.1.0-rc.6**（fork 基线；先运行一次 `npx @deepseek-ai/dsh`，让共享回退
+- dsh **0.1.0-rc.7**（fork 基线；先运行一次 `npx @deepseek-ai/dsh@0.1.0-rc.7`，让共享回退
   目录 `~/.dsh/profiles/node_modules` 存在）
 - Windows、macOS 或 Linux——代码与平台无关；拦截使用各平台的 workspace-write
   后端（Windows 上为 ACL 受限令牌，Linux 上为 bwrap/Landlock，macOS 上为

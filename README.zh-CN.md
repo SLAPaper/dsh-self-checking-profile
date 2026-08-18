@@ -79,7 +79,7 @@ powershell -ExecutionPolicy Bypass -File install-legacy.ps1
 │   └── tests/                   单元、Cordis、原生工具层、live runner
 ├── legacy/                      原 fork/profile 路线
 │   ├── profile/forks/           12 个遮蔽 fork 包
-│   ├── upstream/                字节级上游基线（0.1.0-rc.6）
+│   ├── upstream/                字节级上游基线（0.1.0-rc.7）
 │   ├── patches/                 锚定补丁清单 + 审阅 diff
 │   ├── tools/                   snapshot / merge / gen-patches / rebuild / release
 │   ├── tests/                   legacy 回归 + ACL 探针
@@ -101,7 +101,7 @@ powershell -ExecutionPolicy Bypass -File install-legacy.ps1
 
 ## 环境要求
 
-- dsh **0.1.0-rc.6**（先运行任意 dsh profile 一次，确保
+- dsh **0.1.0-rc.7**（先运行任意 dsh profile 一次，确保
   `~/.dsh/profiles/node_modules` 存在）；
 - Windows、macOS 或 Linux。Plugin 路线目前只在 Windows 上有真实 runner
   测试覆盖；Legacy 路线代码与平台无关。

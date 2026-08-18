@@ -5,7 +5,6 @@ import { ESCALATION_TARGETS, approveEscalation, canonicalPath, escalationHintMar
 import { structuredPatch } from "diff";
 import { basename, extname } from "node:path";
 import { AttachmentError, AttachmentId } from "@deepseek-ai/dsh-attachment";
-import { createUserMessage } from "@deepseek-ai/dsh-llm";
 //#region lib/types/read-render.js
 /**
 * Pure read presentation: turn provider-decoded text into a bounded, line-numbered window and
@@ -1032,7 +1031,7 @@ function applyReadImageTool(ctx) {
 				kind: "present",
 				version: info.version
 			}, exec);
-			const value = {
+			return {
 				path: target.displayPath,
 				image: {
 					attachmentId: ref.attachmentId,
@@ -1043,14 +1042,6 @@ function applyReadImageTool(ctx) {
 					...ref.name === void 0 ? {} : { name: ref.name }
 				}
 			};
-			if (exec.parent !== void 0) exec.deferContext(createUserMessage({
-				content: imageReadContent(value),
-				source: {
-					kind: "plugin",
-					plugin: "tool-fs"
-				}
-			}));
-			return value;
 		},
 		presentCall(args) {
 			return {

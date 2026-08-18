@@ -1,6 +1,6 @@
 # Decision record: Self Checking delivery routes
 
-Status: accepted for the current dsh baseline (`0.1.0-rc.6`).
+Status: accepted for the current dsh baseline (`0.1.0-rc.7`).
 
 ## Background
 
