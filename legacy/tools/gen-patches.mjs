@@ -4,13 +4,15 @@
 // Applying the manifest to a pristine package must reproduce the fork
 // byte-for-byte; every replacement's old-string is verified unique so the
 // apply side can never patch the wrong spot.
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const UPSTREAM = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "upstream", "@deepseek-ai");
 const FORK = process.argv[3] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "profile", "forks");
 const OUT = process.argv[4] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "patches");
+const VERSION_FILE = join(dirname(UPSTREAM), "VERSION");
+const BASELINE = existsSync(VERSION_FILE) ? readFileSync(VERSION_FILE, "utf8").trim() : (process.env.DSH_SC_BASELINE ?? "0.1.0-rc.6");
 
 const PACKAGES = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation", "dsh-tool-fs"];
 
@@ -146,7 +148,7 @@ let totalPairs = 0;
 for (const pkg of PACKAGES) {
   const upstreamDir = join(UPSTREAM, pkg);
   const forkDir = join(FORK, pkg);
-  const manifest = { package: pkg, builtAgainst: "0.1.0-rc.6", files: {} };
+  const manifest = { package: pkg, builtAgainst: BASELINE, files: {} };
   const diffs = [];
   for (const file of collectFiles(forkDir)) {
     const upFile = join(upstreamDir, file);

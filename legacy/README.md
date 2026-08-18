@@ -25,7 +25,7 @@ layer plus release tooling.
   installs stay pristine.
 - **Patch set** — `patches/*.json` (machine-applied anchored replacements) and
   `patches/*.diff` (human review) that rebuild the fork layer from a pristine
-  dsh 0.1.0-rc.6 install, byte-for-byte.
+  dsh 0.1.0-rc.7 install, byte-for-byte.
 - **Upstream tracking** — `upstream/` vendors the exact npm package bytes of
   the baseline, git-tracked and versioned in `upstream/VERSION`. Upgrading to
   a new dsh baseline is a **three-way merge** over that committed snapshot
@@ -82,7 +82,7 @@ self-checking` (current session).
 
 ```
 ├── upstream/                  vendored baseline snapshot (git-tracked)
-│   ├── VERSION                baseline version (e.g. 0.1.0-rc.6)
+│   ├── VERSION                baseline version (e.g. 0.1.0-rc.7)
 │   └── @deepseek-ai/          exact npm package bytes of the 12 packages
 ├── profile/                  the installable profile template
 │   ├── forks/                the 12 forked packages (source of truth)
@@ -110,7 +110,7 @@ self-checking` (current session).
 
 ## Requirements
 
-- dsh **0.1.0-rc.6** (the fork baseline; run `npx @deepseek-ai/dsh` once so the
+- dsh **0.1.0-rc.7** (the fork baseline; run `npx @deepseek-ai/dsh@0.1.0-rc.7` once so the
   shared module fallback `~/.dsh/profiles/node_modules` exists)
 - Windows, macOS, or Linux — the code is platform-neutral; the interception
   uses each platform's workspace-write backend (ACL restricted token on

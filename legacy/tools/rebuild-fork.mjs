@@ -21,7 +21,8 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PATCHES_DIR = join(ROOT, "..", "patches");
-const BASELINE = "0.1.0-rc.6";
+/** The expected baseline is whatever gen-patches recorded in the manifests. */
+const BASELINE = JSON.parse(readFileSync(join(PATCHES_DIR, "dsh-sandbox.json"), "utf8")).builtAgainst;
 const MODIFIED = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation", "dsh-tool-fs"];
 const PRISTINE_COPY = ["dsh-permission-presets"];
 

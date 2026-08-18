@@ -235,7 +235,9 @@ if (dryRun) {
   // replace the vendored snapshot with the new baseline
   rmSync(UPSTREAM_PKGS, { recursive: true, force: true });
   mkdirSync(UPSTREAM_PKGS, { recursive: true });
-  cpSync(newPkgs, UPSTREAM_PKGS, { recursive: true });
+  for (const pkg of ALL) {
+    cpSync(join(newPkgs, pkg), join(UPSTREAM_PKGS, pkg), { recursive: true });
+  }
   writeFileSync(VERSION_FILE, `${newVersion}\n`);
   console.log(`\nvendored snapshot updated to ${newVersion}`);
 }

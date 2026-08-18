@@ -1,9 +1,25 @@
 # Changelog
 
 All notable changes to this repository are documented here. The baseline
-(`builtAgainst`) is the upstream `@deepseek-ai/dsh` 0.1.0-rc.6 install.
+(`builtAgainst`) is the upstream `@deepseek-ai/dsh` 0.1.0-rc.7 install.
 
 ## Unreleased
+
+### Changed
+
+- Upgraded the legacy fork baseline to dsh `0.1.0-rc.7` via a clean
+  three-way merge (0 conflicts): 3 files merged, 23 upstream-only files taken,
+  1 new file adopted. `patches/*.json` were regenerated with
+  `builtAgainst: 0.1.0-rc.7`, and the fork layer passes the byte-for-byte
+  rebuild check and the full legacy verification suite against rc7.
+- Plugin route validated against dsh `0.1.0-rc.7` (`npm test`,
+  `npm run test:live`, real `dsh@0.1.0-rc.7` profile boot, and the installed
+  verifier).
+- `legacy/tools/gen-patches.mjs` now reads the baseline version from
+  `legacy/upstream/VERSION`; `legacy/tools/rebuild-fork.mjs` derives the
+  expected baseline from the patch manifests instead of a hard-coded rc6.
+- `legacy/tools/merge-upstream.mjs` now snapshots only the 12 tracked
+  `@deepseek-ai` packages instead of copying the entire fallback directory.
 
 ### Added
 
