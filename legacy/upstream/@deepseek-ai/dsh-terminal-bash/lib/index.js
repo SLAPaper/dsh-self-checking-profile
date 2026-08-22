@@ -1,18 +1,44 @@
 import { TerminalBackendCleanupError, TerminalError } from "@deepseek-ai/dsh-terminal";
 import { effectiveSandboxMode } from "@deepseek-ai/dsh-sandbox-policy";
+import { ENCODING_PREAMBLE, resolvePwshPath } from "@deepseek-ai/dsh-pwsh-local";
 import z from "@deepseek-ai/schemastery";
 import { Buffer } from "node:buffer";
 //#region lib/types/config.js
 /** Validated configuration for the local PTY backend. */
+/** Bash dialect default executable. */
+const DEFAULT_BASH_SHELL = "/bin/bash";
+/** Bash dialect default arguments (interactive, profile-free). */
+const DEFAULT_BASH_ARGS = [
+	"--noprofile",
+	"--norc",
+	"-i"
+];
+/** Pwsh dialect default arguments (interactive host, profile-free). */
+const DEFAULT_PWSH_ARGS = ["-NoLogo", "-NoProfile"];
+/**
+* Resolve the effective per-dialect shell specification. Defaulting is this
+* explicit step: an unset or empty `shellPath`/`shellArgs` selects the
+* dialect's defaults, while a non-empty explicit value always wins.
+* (Schemastery materializes an absent optional array as `[]`, so emptiness —
+* not just `undefined` — means "dialect default".)
+* @param config - Schemastery-resolved plugin configuration.
+* @returns the fully resolved configuration.
+*/
+function resolveConfig(config) {
+	const shellDialect = config.shellDialect ?? "bash";
+	return {
+		...config,
+		shellDialect,
+		shellPath: config.shellPath !== void 0 && config.shellPath.length > 0 ? config.shellPath : shellDialect === "pwsh" ? resolvePwshPath() : DEFAULT_BASH_SHELL,
+		shellArgs: config.shellArgs !== void 0 && config.shellArgs.length > 0 ? config.shellArgs : shellDialect === "pwsh" ? DEFAULT_PWSH_ARGS : DEFAULT_BASH_ARGS
+	};
+}
 /** Schemastery config exposed by the plugin. */
 const Config = z.object({
 	backendType: z.string().default("shell"),
-	shellPath: z.string().default("/bin/bash"),
-	shellArgs: z.array(z.string()).default([
-		"--noprofile",
-		"--norc",
-		"-i"
-	]),
+	shellDialect: z.union(["bash", "pwsh"]).default("bash"),
+	shellPath: z.string().required(false),
+	shellArgs: z.array(z.string()).required(false),
 	rows: z.number().default(40),
 	cols: z.number().default(160),
 	scrollbackLines: z.number().default(1e4),
@@ -26,7 +52,7 @@ const Config = z.object({
 	disposeGraceMs: z.number().default(3e3)
 });
 /**
-* Assert every numeric config field is a positive safe integer and bounds compose.
+* Assert every effective numeric config field is a positive safe integer and bounds compose.
 * @param config - Schemastery-resolved plugin configuration.
 * @returns Narrows the input to the fully resolved configuration.
 */
@@ -713,19 +739,33 @@ function ensureSandboxModeFence(ctx, owner) {
 		throw new Error(`cannot change sandbox mode from "${currentMode}" to "${event.data.mode}" while persistent terminal sessions are open or being created; wait for creation to settle and close them first`);
 	}, { global: true });
 }
-function childEnvironment(spec) {
-	return {
+function childEnvironment(spec, dialect) {
+	const common = {
 		TERM: "dumb",
 		PAGER: "cat",
 		GIT_PAGER: "cat",
-		PS1: CONTROLLED_PROMPT,
-		PROMPT_COMMAND: `printf "\\033]133;D;%s\\007" "$?"; PS1='${CONTROLLED_PROMPT}'`,
-		BASH_SILENCE_DEPRECATION_WARNING: "1",
 		DSH_SHELL: "1",
 		DSH_SESSION_ID: spec.owner.id,
 		DSH_PTY_SESSION_ID: spec.sessionId
 	};
+	if (dialect === "pwsh") return {
+		...common,
+		NO_COLOR: "1"
+	};
+	return {
+		...common,
+		PS1: CONTROLLED_PROMPT,
+		PROMPT_COMMAND: `printf "\\033]133;D;%s\\007" "$?"; PS1='${CONTROLLED_PROMPT}'`,
+		BASH_SILENCE_DEPRECATION_WARNING: "1"
+	};
 }
+/**
+* The pwsh prompt function that emits the shared OSC `133;D;` + BEL marker
+* before every prompt, mirroring bash's PROMPT_COMMAND. `[char]27`/`[char]7`
+* build the control bytes at runtime because raw ESC characters in submitted
+* input are unreliable under PSReadLine.
+*/
+const PWSH_PROMPT_SETUP = "function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); 'dsh> ' }";
 function spawnArgv(ctx, config, policy) {
 	const argv = [config.shellPath, ...config.shellArgs];
 	if (policy.mode === "danger-full-access") return argv;
@@ -736,9 +776,33 @@ function spawnArgv(ctx, config, policy) {
 		mode: policy.mode
 	}).argv;
 }
-async function initializeSession(session, signal) {
+async function startupSession(session, dialect, signal) {
+	const start = async () => {
+		if (dialect === "bash") {
+			await session.initialize(signal);
+			return;
+		}
+		let viewport = "";
+		for (;;) {
+			const first = viewport.length === 0;
+			const result = await session.startSend({
+				text: first ? ENCODING_PREAMBLE + PWSH_PROMPT_SETUP : "",
+				submit: first,
+				...signal !== void 0 ? { signal } : {}
+			}).done;
+			if (result.waitReason === "session_exit") throw new Error("PTY shell exited during startup");
+			if (result.waitReason === "timeout") throw new Error("PTY shell did not reach readiness before startup timeout");
+			viewport = result.viewport;
+			const scrollback = session.read({
+				offset: 0,
+				count: 20
+			}).text;
+			if (viewport.includes("dsh> ") || scrollback.includes("dsh> ")) break;
+		}
+		session.motd = viewport;
+	};
 	if (signal === void 0) {
-		await session.initialize(signal);
+		await start();
 		return;
 	}
 	const aborted = Promise.withResolvers();
@@ -748,7 +812,7 @@ async function initializeSession(session, signal) {
 	signal.addEventListener("abort", onAbort, { once: true });
 	try {
 		signal.throwIfAborted();
-		await Promise.race([session.initialize(signal), aborted.promise]);
+		await Promise.race([start(), aborted.promise]);
 	} finally {
 		signal.removeEventListener("abort", onAbort);
 	}
@@ -776,7 +840,7 @@ var BashTerminalBackend = class {
 		const terminal = await this.spawnTerminal({
 			argv,
 			cwd: spec.cwd ?? policy.workspaceRoot,
-			env: childEnvironment(spec),
+			env: childEnvironment(spec, this.config.shellDialect),
 			rows: this.config.rows,
 			cols: this.config.cols,
 			graceMs: this.config.disposeGraceMs,
@@ -784,7 +848,7 @@ var BashTerminalBackend = class {
 		});
 		const session = this.createSession(terminal, this.config);
 		try {
-			await initializeSession(session, spec.signal);
+			await startupSession(session, this.config.shellDialect, spec.signal);
 			return session;
 		} catch (error) {
 			try {
@@ -798,8 +862,9 @@ var BashTerminalBackend = class {
 };
 /** Register the local PTY backend. */
 function apply(ctx, config) {
-	validateConfig(config);
-	ctx.terminals.registerBackend(new BashTerminalBackend(ctx, config));
+	const resolved = resolveConfig(config);
+	validateConfig(resolved);
+	ctx.terminals.registerBackend(new BashTerminalBackend(ctx, resolved));
 }
 //#endregion
-export { BashTerminalBackend, Config, apply, inject, name };
+export { BashTerminalBackend, Config, PWSH_PROMPT_SETUP, apply, inject, name };

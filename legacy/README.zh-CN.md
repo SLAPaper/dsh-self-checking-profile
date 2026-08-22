@@ -22,7 +22,7 @@
 - **Fork 层** —— `profile/forks/` 下 12 个 fork 的 `@deepseek-ai` 包，仅对本
   profile 遮蔽同名的上游包；上游安装保持原样。
 - **补丁集** —— `patches/*.json`（机器可套用的锚定替换）与 `patches/*.diff`
-  （供人工审阅），可从一份干净的 dsh 0.1.0-rc.7 安装逐字节重建 fork 层。
+  （供人工审阅），可从一份干净的 dsh 0.1.1-rc.2 安装逐字节重建 fork 层。
 - **上游版本追踪** —— `upstream/` 以 git 跟踪的方式固化基线对应的 npm 包
   原始字节，版本记录在 `upstream/VERSION`。升级到新的 dsh 基线是对这份已提交
   快照的**三方合并**（`tools/merge-upstream.mjs`），而非盲目重打补丁：只有上游
@@ -73,7 +73,7 @@ Self Checking 是"带工作区边界检查的完全访问"：
 
 ```
 ├── upstream/                  固化的基线快照（git 跟踪）
-│   ├── VERSION                基线版本（如 0.1.0-rc.7）
+│   ├── VERSION                基线版本（如 0.1.1-rc.2）
 │   └── @deepseek-ai/          12 个包的 npm 原始字节
 ├── profile/                   可安装的 profile 模板
 │   ├── forks/                 12 个 fork 包（唯一事实来源）
@@ -101,7 +101,7 @@ Self Checking 是"带工作区边界检查的完全访问"：
 
 ## 环境要求
 
-- dsh **0.1.0-rc.7**（fork 基线；先运行一次 `npx @deepseek-ai/dsh@0.1.0-rc.7`，让共享回退
+- dsh **0.1.1-rc.2**（fork 基线；先运行一次 `npx @deepseek-ai/dsh@0.1.1-rc.2`，让共享回退
   目录 `~/.dsh/profiles/node_modules` 存在）
 - Windows、macOS 或 Linux——代码与平台无关；拦截使用各平台的 workspace-write
   后端（Windows 上为 ACL 受限令牌，Linux 上为 bwrap/Landlock，macOS 上为
@@ -150,7 +150,7 @@ dsh plugin --profile self-checking install
 
 若想把 forks 以注册表包而非本地目录发布，把每个 `file:` 说明替换为 npm 别名——
 `"@deepseek-ai/dsh-sandbox": "npm:<your-scope>/dsh-sandbox-selfchecking@<version>"`
-——机制完全相同；但需要先发布那十一个 fork 包。
+——机制完全相同；但需要先发布那十二个 fork 包。
 
 ## 验证
 
@@ -184,7 +184,7 @@ node tests/verify-acl-probe.mjs
 #    node_modules/@deepseek-ai，或解包的 tarball）——放在仓库外
 
 # 2. 三方合并进 fork 层；成功后固化的快照会被替换，upstream/VERSION 更新
-node tools/merge-upstream.mjs 0.1.0-rc.7 <新解包目录>
+node tools/merge-upstream.mjs 0.1.1-rc.2 <新解包目录>
 #    合并规则：只有上游改动的文件直接采纳；只有 fork 改动的文件保持不动；
 #    双方都改动的文件用 git merge-file（diff3）合并；真正的冲突会带冲突标记
 #    写入 profile/forks 并报告（退出码 1）；上游新增的文件被采纳；上游删除的
@@ -200,7 +200,7 @@ node tests/verify-self-checking.mjs
 ```
 
 `tools/snapshot-upstream.mjs <版本> <解包目录>` 用于从零固化基线（例如最初
-的 0.1.0-rc.6 快照，或重建 `upstream/`）；必须先提交再运行合并，因为合并
+的 0.1.1-rc.2 快照，或重建 `upstream/`）；必须先提交再运行合并，因为合并
 从 git HEAD 读取 base。
 
 不升级时重建 fork 层（例如手工编辑 `profile/forks/` 之后，或校验基线）：

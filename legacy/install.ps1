@@ -42,10 +42,10 @@ if (-not (Test-Path (Join-Path $forkTarget "dsh-sandbox"))) {
 Write-Host "installed profile at $dest"
 Write-Host "optional: manage the fork layer with pnpm instead — run: dsh plugin --profile $Profile install"
 
-# requirement check: a dsh 0.1.0-rc.6 install must provide the pristine baseline
+# requirement check: a dsh 0.1.1-rc.2 install must provide the pristine baseline
 $fallback = Join-Path $DshHome "profiles\node_modules\@deepseek-ai"
 if (-not (Test-Path (Join-Path $fallback "dsh-sandbox"))) {
-  Write-Warning "pristine @deepseek-ai install not found at $fallback — run any dsh profile once (or install dsh 0.1.0-rc.6) so the shared module fallback exists"
+  Write-Warning "pristine @deepseek-ai install not found at $fallback — run any dsh profile once (or install dsh 0.1.1-rc.2) so the shared module fallback exists"
 }
 Write-Host "running verification..."
 node (Join-Path $dest "verify.mjs") --profile $dest

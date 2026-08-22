@@ -1,11 +1,33 @@
+/**
+ * InputMachine: the pure per-session input state machine.
+ * Events in, effects out; zero React / DOM / cordis / ambient
+ * clock. Package-private — the SessionInput shell is the only caller and the
+ * sole executor of the returned effects.
+ *
+ * Draft truth: the draft string holds each reference's complete inline display
+ * text; the occurrence table carries identity, range, and the owner's cached projections. Every
+ * draft mutation is one transaction — draft edit, occurrence reconciliation,
+ * and undo-log push are atomic inside dispatch() — and bumps draftRev, which
+ * is what lets span CAS reduce to a revision-equality check: equal rev ⟹
+ * identical draft ⟹ identical span content. Callers observe mutation success
+ * as a draftRev advance (begin-command / insert-ref / consume-token /
+ * paste-upgrade all answer their bail events this way).
+ */
+import type { ReferenceInsert } from '@deepseek-ai/dsh-client-ui-input-trigger/client';
 import type { InputEffect, InputEvent, InputMachineOptions, InputState } from './contract.ts';
-/** The object-replacement character backing every chip occurrence in the draft. */
+/** Legacy fixed-width object replacement character rejected from pasted text. */
 export declare const PLACEHOLDER = "\uFFFC";
 /**
- * Expand the draft's placeholders into their occurrences' clipboard text
- * (the persistence mirror and clipboard both write this
- * projection — U+FFFC never leaves the machine). Table order is offset
- * order, so one linear walk pairs placeholders with entries.
+ * Build the inline draft text whose leading marker is decorated as the
+ * reference icon in the backdrop.
+ * @param reference - reference insertion with its cached display projection.
+ * @returns display text with one marker glyph followed by the complete label.
+ */
+export declare function referenceDraftText(reference: Pick<ReferenceInsert, 'label'>): string;
+/**
+ * Expand the draft's reference ranges into their occurrences' clipboard text
+ * for persistence and clipboard projection. Table order is offset order, so
+ * one linear walk pairs ranges with entries.
  * @param state - published input state.
  * @returns the plain-text projection of the draft.
  */
@@ -50,9 +72,9 @@ export declare class InputMachine {
     private pushTxn;
     /**
      * Reconcile the occurrence table with one edit (old-draft coordinates):
-     * entries past the range shift by the length delta; entries whose
-     * placeholder sits inside the replaced range go away whole (a
-     * deletion/replacement intersecting a placeholder acts on the whole chip).
+     * entries past the range shift by the length delta; an edit that intersects
+     * a reference range removes its structured occurrence and leaves the edited
+     * characters as ordinary draft text.
      */
     private reconcile;
     /** Claimed integrity watch: any mutation that breaks the token prefix releases the claim. */
@@ -67,10 +89,10 @@ export declare class InputMachine {
     private onBeginCommand;
     private onInsertRef;
     /**
-     * Shared chip-insertion transaction: replace [span) with one placeholder
+     * Shared reference-insertion transaction: replace [span) with one inline
      * occurrence (insert-ref and paste-upgrade both land here). A separating
-     * space follows the chip unless one is already next.
-     * @returns the inserted length (placeholder plus optional gap).
+     * space follows the reference unless one is already next.
+     * @returns the inserted length (display text plus optional gap).
      */
     private replaceSpanWithChip;
     /**
@@ -88,7 +110,7 @@ export declare class InputMachine {
     private onUndo;
     private onRedo;
     /**
-     * Paste as one transaction: the text (U+FFFC-sanitized) replaces the
+     * Paste as one transaction: the text (reference-placeholder-sanitized) replaces the
      * selection; hot-snapshot sync matches componentize inside the SAME
      * transaction (one undo returns to pre-paste); a match attempt opens for
      * the async remainder while the phase still accepts reference mutations.
@@ -106,8 +128,7 @@ export declare class InputMachine {
     private onAdjudicated;
     private onAdjudicationFailed;
     private onSubmitSettled;
-    /** Ordinary send accepted: clear as a commit (no undo unit; sent content
-     *  must not be resurrectable — same discipline as submit-settled success). */
+    /** Cut undo state after an accepted image-only send. */
     private onSendCommitted;
     private onRelease;
 }

@@ -41,6 +41,8 @@ export declare function HeroGlow({ className }: {
 export interface HeroShellProps {
     /** The owner's locale seat, passed down as a plain prop. */
     t: HeroTranslate;
+    /** Authorized renderer for the hero brand-mark slot. */
+    renderSlot: ConversationSlotProps['renderSlot'];
     /** Overlay content after the stack (modals). */
     children?: ReactNode;
 }
@@ -50,6 +52,6 @@ export interface HeroShellProps {
  * @param props - see {@link HeroShellProps}.
  * @returns the centered hero element tree.
  */
-export declare function HeroShell({ t, children }: HeroShellProps): import("react").JSX.Element;
+export declare function HeroShell({ t, renderSlot, children }: HeroShellProps): import("react").JSX.Element;
 export {};
 //# sourceMappingURL=EmptyHero.d.ts.map

@@ -1,19 +1,18 @@
 import type { ReactNode } from 'react';
-import type { ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts';
-import { type ImageLoader } from '@deepseek-ai/dsh-client-ui-attachment';
+import type { ChatNodeOwnerProps, ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts';
 /**
  * Render one Host-authoritative pending steering item with the same visual
  * language as its eventual durable transcript node.
  * @param props - Pending message content and conversation translator.
  * @returns the pending steering bubble.
  */
-export declare function PendingSteeringBubble({ content, loadImage, t }: {
+export declare function PendingSteeringBubble({ content, renderMessageImages, t }: {
     content: readonly unknown[];
-    loadImage?: ImageLoader;
+    renderMessageImages: ChatNodeOwnerProps['renderMessageImages'];
     t: ChatViewSlotProps['t'];
 }): ReactNode;
 /** User and admitted-steering keyed Chat renderer. */
-export declare const UserMessageNodeView: import("react").MemoExoticComponent<({ node, loadImage, t, }: ChatNodeViewProps<"user" | "steering">) => import("react").JSX.Element>;
+export declare const UserMessageNodeView: import("react").MemoExoticComponent<({ node, renderMessageImages, t, }: ChatNodeViewProps<"user" | "steering">) => import("react").JSX.Element>;
 /** Injected-context keyed Chat renderer. */
 export declare const ContextMessageNodeView: import("react").MemoExoticComponent<({ node, t }: ChatNodeViewProps<"context">) => import("react").JSX.Element>;
 /** Automatic compaction keyed Chat renderer. */

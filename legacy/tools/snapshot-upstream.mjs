@@ -7,7 +7,7 @@
 // Usage:
 //   node tools/snapshot-upstream.mjs <version> <src-dir>
 //
-//   <version>  the dsh version the snapshot corresponds to (e.g. 0.1.0-rc.6);
+//   <version>  the dsh version the snapshot corresponds to (e.g. 0.1.1-rc.2);
 //              must match the patch baseline (builtAgainst).
 //   <src-dir>  an npm-style extraction whose subdirectory @deepseek-ai/
 //              contains the upstream packages — e.g. the npx cache

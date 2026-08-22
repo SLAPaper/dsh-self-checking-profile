@@ -45,7 +45,7 @@ echo "optional: manage the fork layer with pnpm instead — run: dsh plugin --pr
 
 fallback="${DSH_HOME}/profiles/node_modules/@deepseek-ai"
 if [[ ! -d "${fallback}/dsh-sandbox" ]]; then
-  echo "warning: pristine @deepseek-ai install not found at ${fallback} — run any dsh profile once (or install dsh 0.1.0-rc.6) so the shared module fallback exists" >&2
+  echo "warning: pristine @deepseek-ai install not found at ${fallback} — run any dsh profile once (or install dsh 0.1.1-rc.2) so the shared module fallback exists" >&2
 fi
 echo "running verification..."
 node "${dest}/verify.mjs" --profile "${dest}"

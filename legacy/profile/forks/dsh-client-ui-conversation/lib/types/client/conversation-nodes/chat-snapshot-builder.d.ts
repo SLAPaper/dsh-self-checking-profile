@@ -5,6 +5,7 @@ export declare class ChatSnapshotBuilder implements ConversationViewBuilder<Chat
     private readonly store;
     private readonly locations;
     private readonly legacy;
+    private readonly referenceLabels;
     private order;
     readonly empty: ChatSnapshot;
     constructor();

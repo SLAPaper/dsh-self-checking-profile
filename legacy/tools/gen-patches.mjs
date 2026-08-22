@@ -12,7 +12,7 @@ const UPSTREAM = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url))
 const FORK = process.argv[3] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "profile", "forks");
 const OUT = process.argv[4] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "patches");
 const VERSION_FILE = join(dirname(UPSTREAM), "VERSION");
-const BASELINE = existsSync(VERSION_FILE) ? readFileSync(VERSION_FILE, "utf8").trim() : (process.env.DSH_SC_BASELINE ?? "0.1.0-rc.6");
+const BASELINE = existsSync(VERSION_FILE) ? readFileSync(VERSION_FILE, "utf8").trim() : (process.env.DSH_SC_BASELINE ?? "0.1.1-rc.2");
 
 const PACKAGES = ["dsh-sandbox", "dsh-sandbox-policy", "dsh-pwsh-sandbox", "dsh-bash-sandbox", "dsh-fs-sandbox", "dsh-tool-pwsh", "dsh-tool-bash", "dsh-terminal-bash", "dsh-sandbox-local", "dsh-client-ui-conversation", "dsh-tool-fs"];
 

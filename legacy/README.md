@@ -25,7 +25,7 @@ layer plus release tooling.
   installs stay pristine.
 - **Patch set** — `patches/*.json` (machine-applied anchored replacements) and
   `patches/*.diff` (human review) that rebuild the fork layer from a pristine
-  dsh 0.1.0-rc.7 install, byte-for-byte.
+  dsh 0.1.1-rc.2 install, byte-for-byte.
 - **Upstream tracking** — `upstream/` vendors the exact npm package bytes of
   the baseline, git-tracked and versioned in `upstream/VERSION`. Upgrading to
   a new dsh baseline is a **three-way merge** over that committed snapshot
@@ -82,7 +82,7 @@ self-checking` (current session).
 
 ```
 ├── upstream/                  vendored baseline snapshot (git-tracked)
-│   ├── VERSION                baseline version (e.g. 0.1.0-rc.7)
+│   ├── VERSION                baseline version (e.g. 0.1.1-rc.2)
 │   └── @deepseek-ai/          exact npm package bytes of the 12 packages
 ├── profile/                  the installable profile template
 │   ├── forks/                the 12 forked packages (source of truth)
@@ -110,7 +110,7 @@ self-checking` (current session).
 
 ## Requirements
 
-- dsh **0.1.0-rc.7** (the fork baseline; run `npx @deepseek-ai/dsh@0.1.0-rc.7` once so the
+- dsh **0.1.1-rc.2** (the fork baseline; run `npx @deepseek-ai/dsh@0.1.1-rc.2` once so the
   shared module fallback `~/.dsh/profiles/node_modules` exists)
 - Windows, macOS, or Linux — the code is platform-neutral; the interception
   uses each platform's workspace-write backend (ACL restricted token on
@@ -162,7 +162,7 @@ binding comes from the `@koromix/koffi-<platform>` optional package).
 To publish the forks as registry packages instead of local directories,
 replace each `file:` spec with an npm alias — `"@deepseek-ai/dsh-sandbox":
 "npm:<your-scope>/dsh-sandbox-selfchecking@<version>"` — the mechanism is
-identical; you would need to publish the eleven fork packages first.
+identical; you would need to publish the twelve fork packages first.
 
 ## Verify
 
@@ -200,7 +200,7 @@ upgrading is a tracked three-way merge, not a blind re-patch:
 
 # 2. three-way merge it into the fork layer; on success the vendored
 #    snapshot is replaced and upstream/VERSION updated
-node tools/merge-upstream.mjs 0.1.0-rc.7 <new-extraction-dir>
+node tools/merge-upstream.mjs 0.1.1-rc.2 <new-extraction-dir>
 #    merge rules: upstream-only changes are taken, fork-only changes are kept,
 #    both-changed files are merged with git merge-file (diff3); genuine
 #    conflicts are written into profile/forks with conflict markers and
@@ -217,7 +217,7 @@ node tests/verify-self-checking.mjs
 ```
 
 `tools/snapshot-upstream.mjs <version> <extraction-dir>` vendors a baseline
-from scratch (used to (re)create `upstream/`, e.g. the initial 0.1.0-rc.6
+from scratch (used to (re)create `upstream/`, e.g. the initial 0.1.1-rc.2
 snapshot); commit it before running a merge, because the merge reads its base
 from git HEAD.
 

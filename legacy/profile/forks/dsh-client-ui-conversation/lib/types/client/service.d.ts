@@ -10,6 +10,7 @@
 import { Service } from '@deepseek-ai/cordis';
 import type { Context } from '@deepseek-ai/cordis';
 import type { SessionFace, SessionId } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SubmitImageAttachment, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client';
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment';
 import type { ComposerAttachment } from './contract/slots.ts';
 import type { QueueAction, QueueItemId } from './contract/queue.ts';
@@ -95,8 +96,10 @@ export declare class ConversationController extends Service implements IConversa
      * @param text - serialized prompt text.
      * @param imageIds - ordered draft-local attachment ids.
      * @param mode - queue or steer delivery selected by composer policy.
+     * @param signal - optional cancellation for the complete Host admission.
+     * @returns the Host admission outcome; local attachment preparation failures reject.
      */
-    sendSession(session: SessionFace, text: string, imageIds: readonly DraftAttachmentId[], mode: InputSubmitMode): Promise<void>;
+    sendSession(session: SessionFace, text: string, imageIds: readonly DraftAttachmentId[], mode: InputSubmitMode, signal?: AbortSignal): Promise<SubmitOutcome>;
     /**
      * Create runtime-only draft images and their object URLs.
      * @param files - browser files to register after MIME validation.
@@ -109,6 +112,14 @@ export declare class ConversationController extends Service implements IConversa
      * @returns descriptors that remain live, in requested order.
      */
     draftImages(ids: readonly DraftAttachmentId[]): readonly ComposerAttachment[];
+    /**
+     * Serialize ordered draft images to command-submit wire payloads without
+     * sending or releasing them (the composer releases only after the command
+     * settles successfully).
+     * @param imageIds - ordered draft-local attachment ids.
+     * @returns base64 payloads in id order.
+     */
+    serializeDraftImages(imageIds: readonly DraftAttachmentId[]): Promise<readonly SubmitImageAttachment[]>;
     /**
      * Release one browser-owned draft image and preview URL.
      * @param id - draft attachment id.
@@ -144,5 +155,7 @@ export declare class ConversationController extends Service implements IConversa
     private requireSessions;
     /** Convert browser files to canonical base64 prompt parts. */
     private serializeImages;
+    /** Canonical base64 wire form of one browser image file. */
+    private encodeImage;
 }
 //# sourceMappingURL=service.d.ts.map

@@ -10,7 +10,7 @@ re-running the exact same command/operation executes with full access.
 
 Requirements:
 
-- dsh `0.1.0-rc.7` (run `npx @deepseek-ai/dsh@0.1.0-rc.7` once so the shared profile
+- dsh `0.1.1-rc.2` (run `npx @deepseek-ai/dsh@0.1.1-rc.2` once so the shared profile
   fallback exists).
 
 Once published:
@@ -95,7 +95,7 @@ npm run test:live # real pwsh + windows-acl runner and native pwsh tool layer
   the gate off and restores native behavior;
 - Cordis registration: the package plugin mounts both replacement services.
 
-Also validated against a real dsh `0.1.0-rc.7` profile:
+Also validated against a real dsh `0.1.1-rc.2` profile:
 
 ```bash
 # The intended one-package install path, against a scratch DSH_HOME:

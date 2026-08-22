@@ -44,11 +44,13 @@ export declare function formatTokens(n: number): string;
  */
 export declare function formatDuration(ms: number): string;
 /**
- * Cache-hit share of prompt-side input over the whole durable log.
+ * Display-ready cache-hit share of prompt-side input over the whole durable log.
  * @param usage - the session's token-usage projection value.
- * @returns rounded integer percent, or null when no input was billed.
+ * @returns integer text when integer rounding stays below 100, otherwise the
+ * minimum decimal precision that still rounds below 100; a full hit returns
+ * 100, and no billed input returns null.
  */
-export declare function cacheHitPercent(usage: TokenUsageProjection): number | null;
+export declare function cacheHitPercent(usage: TokenUsageProjection): string | null;
 /**
  * Sum the three disjoint prompt-side billing buckets.
  * @param usage - the session's token-usage projection value.

@@ -7,7 +7,7 @@
  * event listeners onto it.
  */
 import type { ClientContext, ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
-import type { ArbitrateKey, ArbitrateOutcome, CommandClaim, ConsumeTokenRequest, ReferenceInsert, InputTriggerController, TokenSpan } from '@deepseek-ai/dsh-client-ui-input-trigger/client';
+import type { ArbitrateKey, ArbitrateOutcome, CommandClaim, ConsumeTokenRequest, ReferenceInsert, InputTriggerController, SubmitImageAttachment, SubmitOutcome, TokenSpan } from '@deepseek-ai/dsh-client-ui-input-trigger/client';
 import type { DraftAttachmentId, EditRange, EditSelection, InputActions, InputNotice, InputState, PasteComponent, QueuedMessage, SessionInput } from './contract.ts';
 import type { InputSubmitMode } from '../contract/composer-submission.ts';
 /** Popup face the shell needs (dismissal only; typed structurally to avoid a value import). */
@@ -35,7 +35,16 @@ export interface SessionInputDeps {
      */
     steerQueue?: (() => void) | undefined;
     /** The plain-message sink (send choreography / materialize fork — the hub owns it). */
-    defaultSink(text: string, imageIds: readonly DraftAttachmentId[], mode: InputSubmitMode): void;
+    defaultSink(text: string, imageIds: readonly DraftAttachmentId[], mode: InputSubmitMode, signal: AbortSignal): Promise<SubmitOutcome>;
+    /** Command-plane image plumbing (the hub owns the conversation face and the copy). */
+    commandImages: {
+        /** Resolve ordered draft ids to wire payloads without sending them; rejects when an id no longer resolves. */
+        serialize(ids: readonly DraftAttachmentId[]): Promise<readonly SubmitImageAttachment[]>;
+        /** Free consumed draft images after a successful command submit. */
+        release(ids: readonly DraftAttachmentId[]): void;
+        /** Localized composer notice for a claimed command that does not accept images. */
+        unsupportedNotice(token: string): string;
+    };
 }
 /**
  * The per-session input facade: scoped-event application verbs +
@@ -45,16 +54,18 @@ export declare class SessionInputShell implements SessionInput {
     private readonly deps;
     /** Published machine state + queue overlay (the InputZone currency source). */
     readonly state: SnapshotStore<InputState>;
-    /** Latest surfaced notice (null after clear); the wiring renders it beside the error strip. */
+    /** Latest surfaced notice (null after clear); the bar renders errors as banners and information inline. */
     readonly notices: SnapshotStore<InputNotice | null>;
     /** The public provide-channel action face (one stable identity per session). */
     readonly actions: InputActions;
     private readonly core;
     private noticeSeq;
-    private lastDraft;
+    private lastMirroredDraft;
     private imageIds;
+    /** One image-only send at a time: Enter during the Host round-trip is a no-op. */
+    private imageSendInFlight;
     private disposed;
-    /** Draft persistence mirror (chat store write; receives the clipboard projection, never raw placeholders). */
+    /** Draft persistence mirror (chat store write; receives the clipboard projection, never display-only ranges). */
     private mirrorFn;
     constructor(deps: SessionInputDeps);
     /**
@@ -66,18 +77,17 @@ export declare class SessionInputShell implements SessionInput {
     setDraft(text: string, editRange?: EditRange): void;
     /** Append ordered image ids unless an admission transaction is locked. */
     addImages(ids: readonly DraftAttachmentId[]): boolean;
-    /** Remove one image id from this draft. */
+    /**
+     * Remove one image id from this draft. Busy admission phases refuse, like
+     * {@link addImages}: a removal landing while a command submit serializes
+     * would otherwise vanish from the rail yet still ride the in-flight send.
+     */
     removeImage(id: DraftAttachmentId): void;
     /**
      * Keep only image ids that still resolve in the browser attachment registry.
      * @param available - live registry ids.
      */
     pruneImages(available: readonly DraftAttachmentId[]): void;
-    /**
-     * Restore a failed attempt before any images added after its admission.
-     * @param ids - failed attempt image ids.
-     */
-    restoreImages(ids: readonly DraftAttachmentId[]): void;
     /**
      * Clear the draft as a successful-send commit: no undo unit is recorded and
      * the undo history is cut, so Ctrl/Cmd-Z cannot resurrect sent content
@@ -175,9 +185,11 @@ export declare class SessionInputShell implements SessionInput {
      * a scan-derived decoration, never state.
      * @param text - the plain reference text to splice in (e.g. `/name `).
      * @param span - pick-time span snapshot (draftRev CAS).
+     * @param keepCompleting - re-track at the caret after the splice so an open
+     * token (a directory pick's trailing slash) reopens the menu.
      * @returns whether the text was applied.
      */
-    insertText(text: string, span: TokenSpan): boolean;
+    insertText(text: string, span: TokenSpan, keepCompleting?: boolean): boolean;
     /**
      * Surface a notice from outside the machine (detached command results).
      * @param level - severity tier.
@@ -201,15 +213,23 @@ export declare class SessionInputShell implements SessionInput {
     private execute;
     /**
      * Prompt serialization before the sink: expand each
-     * placeholder to its owner's model form via the session controller's
+     * inline reference range to its owner's model form via the session controller's
      * codec routing. Owner missing / serialize failure / disposal blocks the
      * send — notice + draft and chips retained, never a silent downgrade to
      * the clipboard text. Chip-free drafts skip the async detour.
      */
     private sinkSerialized;
+    /** Settle one admission attempt; successful sends consume only their captured images. */
+    private settleSubmit;
     /** Enter adjudication: poll the session controller; failure = notice + draft retained (never a silent downgrade). */
     private adjudicate;
-    /** The submit transaction: claim.submit against the session scope; ok maps from the outcome kind. */
+    /**
+     * The submit transaction: claim.submit against the session scope; ok maps
+     * from the outcome kind. An accepting claim receives the serialized draft
+     * images, which are cleared and released only on a success outcome; a
+     * failure (serialize, transport, or handler error) keeps draft and images
+     * for correction.
+     */
     private beginSubmit;
     /** Late-settlement guard: superseded attempts and disposed facades drop silently. */
     private dead;

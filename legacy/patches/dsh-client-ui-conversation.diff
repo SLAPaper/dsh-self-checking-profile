@@ -1,6 +1,6 @@
 --- a/dsh-client-ui-conversation/lib/client.js
 +++ b/dsh-client-ui-conversation/lib/client.js
-@@ -3125,6 +3125,32 @@
+@@ -3287,6 +3287,32 @@
  					})
  				]
  			}),

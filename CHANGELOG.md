@@ -1,19 +1,19 @@
 # Changelog
 
 All notable changes to this repository are documented here. The baseline
-(`builtAgainst`) is the upstream `@deepseek-ai/dsh` 0.1.0-rc.7 install.
+(`builtAgainst`) is the upstream `@deepseek-ai/dsh` 0.1.1-rc.2 install.
 
 ## Unreleased
 
 ### Changed
 
-- Upgraded the legacy fork baseline to dsh `0.1.0-rc.7` via a clean
-  three-way merge (0 conflicts): 3 files merged, 23 upstream-only files taken,
+- Upgraded the legacy fork baseline to dsh `0.1.1-rc.2` via a clean
+  three-way merge (0 conflicts): 4 files merged, 45 upstream-only files taken,
   1 new file adopted. `patches/*.json` were regenerated with
-  `builtAgainst: 0.1.0-rc.7`, and the fork layer passes the byte-for-byte
-  rebuild check and the full legacy verification suite against rc7.
-- Plugin route validated against dsh `0.1.0-rc.7` (`npm test`,
-  `npm run test:live`, real `dsh@0.1.0-rc.7` profile boot, and the installed
+  `builtAgainst: 0.1.1-rc.2`, and the fork layer passes the byte-for-byte
+  rebuild check and the full legacy verification suite against 0.1.1-rc.2.
+- Plugin route validated against dsh `0.1.1-rc.2` (`npm test`,
+  `npm run test:live`, real `dsh@0.1.1-rc.2` profile boot, and the installed
   verifier).
 - `legacy/tools/gen-patches.mjs` now reads the baseline version from
   `legacy/upstream/VERSION`; `legacy/tools/rebuild-fork.mjs` derives the

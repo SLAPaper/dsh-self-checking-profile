@@ -39,6 +39,7 @@ export declare const zh: {
     'image.fileTooLarge': string;
     'image.totalTooLarge': string;
     'image.tooManyPixels': string;
+    'image.dimensionTooLarge': string;
     'image.modelUnsupported': string;
     'image.subagentUnsupported': string;
     'image.sendFailed': string;
@@ -84,9 +85,15 @@ export declare const zh: {
     'chat.loadError': string;
     'chat.loadOlder': string;
     'chat.toBottom': string;
+    'fileOpen.title': string;
+    'fileOpen.unknown': string;
+    'fileOpen.folderTitle': string;
+    'fileOpen.folderUnknown': string;
     'message.extraBlock': string;
     'message.contextInjection': string;
     'message.contextRecall': string;
+    'message.referenceSummary': string;
+    'message.referenceSeparator': string;
     'message.context.instructions.loaded': string;
     'message.context.instructions.added': string;
     'message.context.instructions.updated': string;
@@ -126,6 +133,7 @@ export declare const zh: {
     'command.failed': string;
     'command.done': string;
     'command.title': string;
+    'command.imagesUnsupported': string;
     'approval.waiting': string;
     'approval.detail.aria': string;
     'approval.escalation': string;
@@ -206,6 +214,7 @@ export declare const en: {
     'image.fileTooLarge': string;
     'image.totalTooLarge': string;
     'image.tooManyPixels': string;
+    'image.dimensionTooLarge': string;
     'image.modelUnsupported': string;
     'image.subagentUnsupported': string;
     'image.sendFailed': string;
@@ -251,9 +260,15 @@ export declare const en: {
     'chat.loadError': string;
     'chat.loadOlder': string;
     'chat.toBottom': string;
+    'fileOpen.title': string;
+    'fileOpen.unknown': string;
+    'fileOpen.folderTitle': string;
+    'fileOpen.folderUnknown': string;
     'message.extraBlock': string;
     'message.contextInjection': string;
     'message.contextRecall': string;
+    'message.referenceSummary': string;
+    'message.referenceSeparator': string;
     'message.context.instructions.loaded': string;
     'message.context.instructions.added': string;
     'message.context.instructions.updated': string;
@@ -293,6 +308,7 @@ export declare const en: {
     'command.failed': string;
     'command.done': string;
     'command.title': string;
+    'command.imagesUnsupported': string;
     'approval.waiting': string;
     'approval.detail.aria': string;
     'approval.escalation': string;

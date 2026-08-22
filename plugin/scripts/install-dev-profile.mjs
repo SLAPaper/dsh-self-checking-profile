@@ -54,7 +54,7 @@ writeFileSync(join(destProfile, 'package.json'), JSON.stringify({
 const fallback = join(dshHome, 'profiles', 'node_modules', '@deepseek-ai', 'dsh-base')
 if (!existsSync(fallback)) {
   console.error(`warning: pristine dsh fallback not found at ${fallback}`)
-  console.error('run any dsh 0.1.0-rc.6 profile once before starting this one')
+  console.error('run any dsh 0.1.1-rc.2 profile once before starting this one')
 }
 console.log(`installed ${pkgName} into ${destProfile}`)
 console.log(`verify: node ${join(destPkg, 'scripts', 'verify-installed.mjs')} --profile ${basename(profile)} --dsh-home ${dshHome}`)

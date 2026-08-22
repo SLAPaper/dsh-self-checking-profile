@@ -1,6 +1,6 @@
 --- a/dsh-sandbox-local/lib/index.js
 +++ b/dsh-sandbox-local/lib/index.js
-@@ -212,7 +212,8 @@
+@@ -209,7 +209,8 @@
  	"windows-acl": [
  		"access is denied",
  		"access to the path",

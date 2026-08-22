@@ -26,6 +26,7 @@ function bwrapProfileArgs(policy) {
 		"/",
 		"--dev",
 		"/dev",
+		"--unshare-pid",
 		"--proc",
 		"/proc",
 		"--die-with-parent"
@@ -98,14 +99,10 @@ function seatbeltProfileArgs(policy) {
 /** Probe whether `bwrap` can create the profile; the provider caches the bounded result. */
 function defaultProbeBwrap(timeoutMs) {
 	return spawnSync("bwrap", [
-		"--ro-bind",
-		"/",
-		"/",
-		"--dev",
-		"/dev",
-		"--proc",
-		"/proc",
-		"--die-with-parent",
+		...bwrapProfileArgs({
+			mode: "read-only",
+			workspaceRoot: "/"
+		}),
 		"--",
 		"true"
 	], {

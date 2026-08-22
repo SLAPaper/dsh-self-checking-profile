@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = join(ROOT, "..");
-const VERSION = process.argv[2] ?? "0.1.0-rc.6";
+const VERSION = process.argv[2] ?? "0.1.1-rc.2";
 const DIST = join(ROOT, "dist");
 const OUT = join(ROOT, `dsh-profile-self-checking-${VERSION}.zip`);
 

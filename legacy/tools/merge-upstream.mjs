@@ -4,7 +4,7 @@
 // Usage:
 //   node tools/merge-upstream.mjs <new-version> <new-upstream-dir> [--dry-run]
 //
-//   <new-version>     the dsh version being upgraded to (e.g. 0.1.0-rc.7).
+//   <new-version>     the dsh version being upgraded to (e.g. 0.1.1-rc.2).
 //   <new-upstream-dir> an npm-style extraction whose subdirectory
 //                     @deepseek-ai/ contains the NEW upstream packages
 //                     (obtained e.g. by running

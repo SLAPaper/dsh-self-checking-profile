@@ -1,12 +1,16 @@
 /** Validated configuration for the local PTY backend. */
 import z from '@deepseek-ai/schemastery';
+/** One supported interactive shell dialect. */
+export type ShellDialect = 'bash' | 'pwsh';
 /** Public plugin configuration. */
 export interface Config {
     /** Backend registry type (default: `shell`). */
     backendType?: string;
-    /** Interactive shell executable (default: `/bin/bash`). */
+    /** Interactive shell dialect (default: `bash`); selects the argv/env/startup defaults. */
+    shellDialect?: ShellDialect;
+    /** Interactive shell executable (default per dialect: `/bin/bash`, or the resolved pwsh). */
     shellPath?: string;
-    /** Shell arguments (default: `--noprofile --norc -i`). */
+    /** Shell arguments (default per dialect: bash `--noprofile --norc -i`, pwsh `-NoLogo -NoProfile`). */
     shellArgs?: string[];
     /** Terminal rows. */
     rows?: number;
@@ -34,12 +38,32 @@ export interface Config {
     /** Grace before teardown escalates to `SIGKILL`. */
     disposeGraceMs?: number;
 }
-/** Configuration after Schemastery defaults. */
-export type ResolvedConfig = Required<Config>;
+/** Configuration after Schemastery defaults and dialect resolution. */
+export type ResolvedConfig = Omit<Required<Config>, 'shellDialect' | 'shellPath' | 'shellArgs'> & {
+    shellDialect: ShellDialect;
+    shellPath: string;
+    shellArgs: string[];
+};
+/** Bash dialect default executable. */
+export declare const DEFAULT_BASH_SHELL = "/bin/bash";
+/** Bash dialect default arguments (interactive, profile-free). */
+export declare const DEFAULT_BASH_ARGS: string[];
+/** Pwsh dialect default arguments (interactive host, profile-free). */
+export declare const DEFAULT_PWSH_ARGS: string[];
+/**
+ * Resolve the effective per-dialect shell specification. Defaulting is this
+ * explicit step: an unset or empty `shellPath`/`shellArgs` selects the
+ * dialect's defaults, while a non-empty explicit value always wins.
+ * (Schemastery materializes an absent optional array as `[]`, so emptiness —
+ * not just `undefined` — means "dialect default".)
+ * @param config - Schemastery-resolved plugin configuration.
+ * @returns the fully resolved configuration.
+ */
+export declare function resolveConfig(config: Config): ResolvedConfig;
 /** Schemastery config exposed by the plugin. */
 export declare const Config: z<Config>;
 /**
- * Assert every numeric config field is a positive safe integer and bounds compose.
+ * Assert every effective numeric config field is a positive safe integer and bounds compose.
  * @param config - Schemastery-resolved plugin configuration.
  * @returns Narrows the input to the fully resolved configuration.
  */

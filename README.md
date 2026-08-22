@@ -82,7 +82,7 @@ the explicit `sandbox_permissions + justification` approval channel all match.
 │   └── tests/                   unit, Cordis, native tool-layer, live runner
 ├── legacy/                      original fork/profile route
 │   ├── profile/forks/           12 shadowing fork packages
-│   ├── upstream/                byte-exact upstream baseline (0.1.0-rc.7)
+│   ├── upstream/                byte-exact upstream baseline (0.1.1-rc.2)
 │   ├── patches/                 anchored patch manifests + review diffs
 │   ├── tools/                   snapshot / merge / gen-patches / rebuild / release
 │   ├── tests/                   legacy regression + ACL probes
@@ -105,7 +105,7 @@ the explicit `sandbox_permissions + justification` approval channel all match.
 
 ## Requirements
 
-- dsh **0.1.0-rc.7** (run any dsh profile once first so
+- dsh **0.1.1-rc.2** (run any dsh profile once first so
   `~/.dsh/profiles/node_modules` exists);
 - Windows, macOS, or Linux. The plugin route's real-runner test coverage is
   currently Windows-only; the legacy route is platform-independent.

@@ -1,6 +1,6 @@
 --- a/dsh-terminal-bash/lib/index.js
 +++ b/dsh-terminal-bash/lib/index.js
-@@ -731,9 +731,13 @@
+@@ -771,9 +771,13 @@
  	if (policy.mode === "danger-full-access") return argv;
  	const sandbox = ctx.get("sandbox");
  	if (sandbox === void 0) throw new Error(`terminal-bash: sandbox mode "${policy.mode}" requires a ctx.sandbox provider in the execution world`);
@@ -14,4 +14,4 @@
 +		mode
  	}).argv;
  }
- async function initializeSession(session, signal) {
+ async function startupSession(session, dialect, signal) {

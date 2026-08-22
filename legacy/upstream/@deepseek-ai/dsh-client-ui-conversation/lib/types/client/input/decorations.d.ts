@@ -1,6 +1,6 @@
 /**
- * Draft decoration pure core (chips render from the occurrence
- * table at placeholder offsets; the claim token renders as a mirror-layer
+ * Draft decoration pure core (references render from occurrence ranges; the
+ * claim token renders as a mirror-layer
  * highlight, the claim hint as ghost text). Zero React — the skeleton renders
  * the instructions; tests drive this directly.
  */
@@ -10,13 +10,19 @@ export interface TokenRange {
     readonly start: number;
     readonly end: number;
 }
-/** One chip render instruction: the placeholder at `offset` draws as `label`. */
+/** One structured inline-reference render instruction. */
 export interface ChipRender {
     /** Stable render key (same-labeled chips stay independent). */
     readonly occurrenceId: number;
-    /** Placeholder offset in the draft (the chip occupies [offset, offset+1)). */
+    /** Display-text offset in the draft. */
     readonly offset: number;
+    /** Display-text length in the draft. */
+    readonly length: number;
+    /** Exact inline text whose native glyph metrics determine layout. */
+    readonly text: string;
     readonly label: string;
+    /** Optional domain glyph beside the label. */
+    readonly appearance?: 'session' | 'file' | 'folder';
     /** Owner-resolution failure styling bit. */
     readonly invalid: boolean;
 }
@@ -31,6 +37,8 @@ export interface TextRefRange {
     readonly start: number;
     readonly end: number;
     readonly trigger: '/' | '@';
+    /** Optional icon domain for syntax-recognizable plain references. */
+    readonly appearance?: 'folder';
 }
 /** Decoration product: claim token range + chip instructions + text-ref ranges + the ghost hint. */
 export interface DraftDecorations {
@@ -38,7 +46,7 @@ export interface DraftDecorations {
     readonly token: TokenRange | null;
     /** Chip render instructions in draft order (occurrence table is offset-sorted). */
     readonly chips: readonly ChipRender[];
-    /** Scan-derived plain-text reference ranges (empty without a lexicon). */
+    /** Scan-derived lexicon tokens and syntax-recognizable folder ranges. */
     readonly textRefs: readonly TextRefRange[];
     /** Ghost hint shown while the claim's args are blank; null otherwise. */
     readonly hint: string | null;

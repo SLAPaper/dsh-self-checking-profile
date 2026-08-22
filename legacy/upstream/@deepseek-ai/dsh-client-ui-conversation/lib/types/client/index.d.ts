@@ -20,7 +20,7 @@ export type { DraftAttachmentId } from './input/contract.ts';
 export type { CallId, ChatStoreState, SelectionTarget, ViewTab, } from './contract/views.ts';
 export type { ConversationKey } from './locales.ts';
 export type { AssistantChatData, ChatNode, ChatNodeDataMap, ChatNodeKind, ManualCompactionChatData, RetryChatData, ToolChatData, TurnTailChatData, } from './contract/chat-nodes.ts';
-export type { ChatFileMentions, ChatNodeOwnerProps, ChatNodeViewProps, ChatStore, ChatViewInjected, ChatViewSlotProps, CommandRowOwnerProps, CommandRowProps, ComposerBarInjected, ComposerAttachment, ComposerChainProps, ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionInjected, ConversationSlotProps, ConvViewOwnerProps, ConvViewProps, DetailsInjected, DetailsSlotProps, DetailsToolOwnerProps, EmptyWorkspaceOwnerProps, TurnTailOwnerProps, UseChatNodeTurnData, } from './contract/slots.ts';
+export type { ChatFileMentions, ChatNodeOwnerProps, ChatNodeViewProps, ChatStore, ChatViewInjected, ChatViewSlotProps, CommandRowOwnerProps, CommandRowProps, ComposerBarInjected, ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps, ComposerChainProps, ConversationInjected, ConversationHeaderLineageOwnerProps, ConversationSessionHeaderInjected, ConversationSessionInjected, ConversationSlotProps, ConvViewOwnerProps, ConvViewProps, DetailsInjected, DetailsSlotProps, DetailsToolOwnerProps, EmptyWorkspaceOwnerProps, HeroBrandMarkOwnerProps, MessageImagesOwnerProps, MessageImagesProps, RenderMessageImages, TurnTailOwnerProps, UseChatNodeTurnData, } from './contract/slots.ts';
 declare module '@deepseek-ai/cordis' {
     interface Context {
         /** The outward face only; the concrete service stays inside this plugin. */

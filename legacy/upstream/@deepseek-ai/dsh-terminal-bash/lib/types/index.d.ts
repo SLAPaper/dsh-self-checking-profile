@@ -14,6 +14,13 @@ export type { Config as TerminalLocalConfig } from './config.ts';
 export declare const name = "terminal-bash";
 /** Required services: PTY registry, shared confinement policy, and process substrate. */
 export declare const inject: string[];
+/**
+ * The pwsh prompt function that emits the shared OSC `133;D;` + BEL marker
+ * before every prompt, mirroring bash's PROMPT_COMMAND. `[char]27`/`[char]7`
+ * build the control bytes at runtime because raw ESC characters in submitted
+ * input are unreliable under PSReadLine.
+ */
+export declare const PWSH_PROMPT_SETUP: string;
 /** Local shell backend registered under the configured type. */
 export declare class BashTerminalBackend implements TerminalBackend {
     private readonly ctx;

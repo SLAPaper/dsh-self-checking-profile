@@ -1,6 +1,6 @@
 {
   "package": "dsh-sandbox-local",
-  "builtAgainst": "0.1.0-rc.7",
+  "builtAgainst": "0.1.1-rc.2",
   "files": {
     "lib/index.js": [
       {
